@@ -134,12 +134,22 @@ $("test").onclick=async()=>{const k=$("key").value.trim();if(!k)return $("saved"
 
 $("video").onchange=()=>setFile($("video").files[0]);
 
-function goToUpload(){
+function goToUpload(lock=false){
   const section=$("upload");
   if(!section)return;
+  const move=()=>{
+    const top=Math.max(0,window.scrollY+section.getBoundingClientRect().top-6);
+    window.scrollTo({top,behavior:lock?"auto":"smooth"});
+  };
   section.classList.add("uploadFocus");
-  section.scrollIntoView({behavior:"smooth",block:"start"});
-  setTimeout(()=>section.classList.remove("uploadFocus"),900);
+  move();
+  if(lock){
+    // Android Chrome may restore the file input's old scroll position
+    // after the file picker closes. Re-apply the Upload position.
+    document.activeElement?.blur();
+    [80,220,500,900].forEach(ms=>setTimeout(move,ms));
+  }
+  setTimeout(()=>section.classList.remove("uploadFocus"),1100);
   document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));
   document.querySelector('.nav[data-section="upload"]')?.classList.add("active");
 }
@@ -177,7 +187,7 @@ function setFile(f){
   p.load();
 
   // After choosing a video, keep the user at the Upload Video panel.
-  requestAnimationFrame(()=>goToUpload());
+  requestAnimationFrame(()=>goToUpload(true));
 }
 
 function audioBufferToWav(buffer,targetRate=16000){
@@ -326,7 +336,7 @@ $("go")?.addEventListener("click",async()=>{const f=$("video").files[0],k=localS
   }catch(e){$("status").textContent="✕ "+e.message;$("percent").textContent="0%";$("go").disabled=false;}
 });
 document.querySelectorAll(".nav").forEach(n=>n.onclick=()=>{
-  if(n.dataset.section==="upload"){goToUpload();return;}
+  if(n.dataset.section==="upload"){goToUpload(false);return;}
   const target=$(n.dataset.section);
   if(!target)return;
   target.scrollIntoView({behavior:"smooth",block:"start"});
