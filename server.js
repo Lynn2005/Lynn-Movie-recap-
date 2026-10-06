@@ -40,85 +40,65 @@ async function tts(text,file){
   const {ttsSave}=require("edge-tts");
   await ttsSave(text,file,{voice:process.env.TTS_VOICE||"my-MM-ThihaNeural",rate:process.env.TTS_RATE||"-5%",volume:"+0%",pitch:"+0Hz"});
 }
+async function extractAudio(input,audio){
+  // Let FFmpeg decode the first available audio stream. We deliberately avoid
+  // depending only on ffprobe stream metadata because some mobile/downloaded
+  // MP4 files expose unusual container metadata.
+  const attempts=[
+    ["-y","-hide_banner","-loglevel","error","-i",input,"-vn","-ac","1","-ar","16000","-c:a","pcm_s16le",audio],
+    ["-y","-hide_banner","-loglevel","error","-i",input,"-map","0:a:0?","-vn","-ac","1","-ar","16000","-c:a","pcm_s16le",audio]
+  ];
+  let last="";
+  for(const args of attempts){
+    try{
+      await run(ffmpeg,args);
+      if(fs.existsSync(audio)&&fs.statSync(audio).size>2048)return true;
+    }catch(e){last=String(e.message||e)}
+    try{if(fs.existsSync(audio))fs.unlinkSync(audio)}catch{}
+  }
+  throw new Error("Audio ကို Video ထဲကနေ Extract မလုပ်နိုင်ပါ။ FFmpeg က ဒီဖိုင်ထဲမှာ ဖတ်နိုင်တဲ့ Audio Stream မတွေ့ပါ။ မူရင်းအသံပါတဲ့ MP4/MOV ကို ပြန်တင်ပါ။"+(last?("\n"+last.split("\n").slice(-3).join("\n")):""));
+}
+
 async function processJob(id,input,opts){
   const dir=path.join(OUT,id);fs.mkdirSync(dir,{recursive:true});
-  const audio=path.join(dir,"audio.wav"), voice=path.join(dir,"voice.mp3");
+  const audio=path.join(dir,"audio.wav"),voice=path.join(dir,"voice.mp3");
   try{
-    job(id,{status:"processing",stage:"audio",progress:12});
-    // Robust audio extraction: first inspect streams, then let FFmpeg extract
-    // without relying on a fragile stream-map. This handles MP4/MOV variants
-    // whose audio metadata is unusual.
-    let probe="";
-    try{
-      probe=await run(ffprobe.path,[
-        "-v","error","-show_entries","stream=index,codec_type,codec_name",
-        "-of","json",input
-      ]);
-    }catch(e){ probe=""; }
+    job(id,{status:"processing",stage:"audio",progress:12,error:null});
+    await extractAudio(input,audio);
 
-    let streams=[];
-    try{ streams=JSON.parse(probe||"{}").streams||[]; }catch(e){}
-    const hasAudio=streams.some(s=>s.codec_type==="audio");
-
-    if(hasAudio){
-      try{
-        await run(ffmpeg,[
-          "-y","-i",input,
-          "-vn","-map","0:a:0",
-          "-ac","1","-ar","16000","-c:a","pcm_s16le",audio
-        ]);
-      }catch(e){
-        // Fallback for containers with unusual stream metadata.
-        await run(ffmpeg,[
-          "-y","-i",input,
-          "-vn","-ac","1","-ar","16000","-c:a","pcm_s16le",audio
-        ]);
-      }
-    }else{
-      // A second FFmpeg probe can find streams that ffprobe metadata misses.
-      let ffmpegProbe="";
-      try{
-        ffmpegProbe=await run(ffmpeg,["-hide_banner","-i",input]);
-      }catch(e){
-        ffmpegProbe=String(e.message||"");
-      }
-      if(/Stream #\d+:\d+.*Audio:/i.test(ffmpegProbe)){
-        await run(ffmpeg,[
-          "-y","-i",input,
-          "-vn","-ac","1","-ar","16000","-c:a","pcm_s16le",audio
-        ]);
-      }else{
-        throw new Error("ဒီ MP4 ဖိုင်ထဲမှာ FFmpeg က Audio Stream ကို မတွေ့ပါ။ မူရင်းအသံပါတဲ့ MP4/MOV ဖိုင်ကို ပြန်တင်ပါ။");
-      }
-    }
-
-    if(!fs.existsSync(audio)||fs.statSync(audio).size<1024){
-      throw new Error("Audio ကို Video ထဲကနေ Extract မလုပ်နိုင်ပါ။ Audio ပါတဲ့ မူရင်း Video ဖိုင်ကို ပြန်တင်ပါ။");
-    }
     job(id,{stage:"transcription",progress:30});
     const key=opts.key;
     const b64=fs.readFileSync(audio).toString("base64");
     const original=cleanSrt(await gemini("Create an accurate ORIGINAL-language subtitle transcript from this audio. Return ONLY valid SRT. Use sequential cue numbers and HH:MM:SS,mmm timestamps. Do not translate or explain.",key,b64));
+    if(!original.trim())throw new Error("Original subtitle မထွက်လာပါ။");
     fs.writeFileSync(path.join(dir,"original.srt"),original);
+
     job(id,{stage:"translation",progress:48});
     const burmese=cleanSrt(await gemini("Translate every subtitle line below into natural conversational Burmese. Keep ALL cue numbers and timestamps EXACTLY unchanged. Return ONLY valid SRT. Do not add/remove cues.\n\n"+original,key));
+    if(!burmese.trim())throw new Error("Burmese subtitle မထွက်လာပါ။");
     fs.writeFileSync(path.join(dir,"burmese.srt"),burmese);
+
     job(id,{stage:"recap",progress:64});
     const recap=await gemini("Write a natural, engaging Burmese movie recap narration from these Burmese subtitles. Keep the story accurate, explain events clearly, use casual spoken Burmese suitable for AI voice, and do not invent major events. Output ONLY the narration.\n\n"+burmese,key);
+    if(!recap.trim())throw new Error("Recap script မထွက်လာပါ။");
     fs.writeFileSync(path.join(dir,"recap.txt"),recap.trim());
+
     job(id,{stage:"voice",progress:78});
     await tts(recap.trim(),voice);
+    if(!fs.existsSync(voice)||fs.statSync(voice).size<1024)throw new Error("AI Voice ဖန်တီးမရပါ။");
+
     job(id,{stage:"render",progress:88});
     const ratio=opts.ratio||"9:16",crf=String(opts.crf||28);
     const vf=ratio==="16:9"?"scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2":ratio==="1:1"?"scale=720:720:force_original_aspect_ratio=decrease,pad=720:720:(ow-iw)/2:(oh-ih)/2":"scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2";
     const final=path.join(dir,"final.mp4");
     const dur=Number((await run(ffprobe.path,["-v","error","-show_entries","format=duration","-of","default=noprint_wrappers=1:nokey=1",input])).trim())||0;
     await run(ffmpeg,["-y","-i",input,"-i",voice,"-vf",vf,"-map","0:v:0","-map","1:a:0","-t",String(dur),"-c:v","libx264","-preset","veryfast","-crf",crf,"-c:a","aac","-b:a","128k","-movflags","+faststart",final]);
-    job(id,{status:"complete",stage:"complete",progress:100,files:{video:"/api/download/"+id+"/final.mp4",originalSrt:"/api/download/"+id+"/original.srt",burmeseSrt:"/api/download/"+id+"/burmese.srt",recap:"/api/download/"+id+"/recap.txt"}});
-  }catch(e){job(id,{status:"error",stage:"error",progress:0,error:e.message})}
-  finally{try{fs.unlinkSync(input)}catch{}}
+    if(!fs.existsSync(final)||fs.statSync(final).size<1024)throw new Error("Final video render မအောင်မြင်ပါ။");
+    job(id,{status:"complete",stage:"complete",progress:100,error:null,files:{video:"/api/download/"+id+"/final.mp4",originalSrt:"/api/download/"+id+"/original.srt",burmeseSrt:"/api/download/"+id+"/burmese.srt",recap:"/api/download/"+id+"/recap.txt"}});
+  }catch(e){
+    job(id,{status:"error",stage:"error",progress:0,error:String(e.message||e)});
+  }finally{try{fs.unlinkSync(input)}catch{}}
 }
-
 app.get("/api/health",(req,res)=>res.json({ok:true,app:"Lynn Movie Recap",version:"2.0.0"}));
 app.post("/api/process",upload.single("video"),async(req,res)=>{
   if(!req.file)return res.status(400).json({error:"Video မရှိပါ"});
