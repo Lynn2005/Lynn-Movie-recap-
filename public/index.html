@@ -58,6 +58,7 @@
           </label>
           <div id="fileInfo" class="fileInfo" hidden><span>🎬</span><div><b id="filename"></b><small id="filesize"></small></div><button id="remove">×</button></div>
           <video id="preview" class="preview" controls playsinline preload="metadata" hidden></video>
+          <button id="playSound" class="playSound" type="button" hidden>🔊 အသံဖွင့်ပါ</button>
           <div id="audioStatus" class="audioStatus" hidden>🔊 Original audio ready</div>
           <div id="audioBackup" class="audioBackup" hidden>⏳ Audio backup preparing...</div>
         </div>
@@ -188,12 +189,16 @@ function setFile(f){
   $("audioStatus").textContent="🔎 Checking original audio...";
   p.onloadedmetadata=()=>{
     p.muted=false;
+    p.defaultMuted=false;
     p.volume=1;
     const hasAudio=(typeof p.mozHasAudio==="boolean"&&p.mozHasAudio)||
       (typeof p.webkitAudioDecodedByteCount==="number"&&p.webkitAudioDecodedByteCount>0);
-    $("audioStatus").textContent=hasAudio?"🔊 Original audio ready":"🔊 Browser audio backup will be used when possible";
+    $("audioStatus").textContent=hasAudio?"🔊 Original audio ready — Play နှိပ်ပြီး အသံနားထောင်နိုင်ပါတယ်":"🔊 Browser audio backup will be used when possible";
     $("audioStatus").classList.toggle("warn",!hasAudio);
+    $("playSound").hidden=false;
   };
+  p.onplay=()=>{p.muted=false;p.defaultMuted=false;p.volume=1;$("playSound").textContent="🔊 အသံဖွင့်ထားသည်";};
+  p.onpause=()=>{$("playSound").textContent="🔊 အသံဖွင့်ပါ";};
   p.load();
 
   // After choosing a video, keep the user locked to the Upload Video card.
@@ -288,6 +293,18 @@ async function makeBrowserAudio(file){
   return null;
 }
 
+$("playSound").onclick=async()=>{
+  const p=$("preview");
+  p.muted=false;p.defaultMuted=false;p.volume=1;
+  try{
+    await p.play();
+    $("audioStatus").textContent="🔊 Original video audio is playing";
+    $("audioStatus").classList.remove("warn");
+  }catch(e){
+    $("audioStatus").textContent="⚠️ အသံဖွင့်မရပါ — ဖုန်း Media Volume ကိုဖွင့်ပြီး Video Play ကိုနှိပ်ပါ";
+    $("audioStatus").classList.add("warn");
+  }
+};
 $("remove").onclick=()=>{
   selectedFile=null;
   $("video").value="";
@@ -296,6 +313,7 @@ $("remove").onclick=()=>{
   $("preview").hidden=true;
   $("preview").removeAttribute("src");
   $("preview").load();
+  $("playSound").hidden=true;
   $("audioStatus").hidden=true;
   $("audioBackup").hidden=true;
 };
