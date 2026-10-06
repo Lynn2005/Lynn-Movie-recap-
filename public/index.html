@@ -136,20 +136,29 @@ $("video").onchange=()=>setFile($("video").files[0]);
 
 function goToUpload(lock=false){
   const section=$("upload");
-  if(!section)return;
+  const panel=section?.querySelector(".uploadPanel");
+  if(!section||!panel)return;
+
+  // Anchor to the actual Upload Video card, not the whole workspace.
+  const getTop=()=>Math.max(0,window.scrollY+panel.getBoundingClientRect().top-8);
   const move=()=>{
-    const top=Math.max(0,window.scrollY+section.getBoundingClientRect().top-6);
-    window.scrollTo({top,behavior:lock?"auto":"smooth"});
+    const top=getTop();
+    window.scrollTo(0,top);
   };
+
   section.classList.add("uploadFocus");
-  move();
   if(lock){
-    // Android Chrome may restore the file input's old scroll position
-    // after the file picker closes. Re-apply the Upload position.
+    // Android Chrome can restore the file-picker position after onchange.
+    // Blur the hidden file input and repeatedly restore the exact Upload card
+    // position while the video preview is being inserted/laid out.
     document.activeElement?.blur();
-    [80,220,500,900].forEach(ms=>setTimeout(move,ms));
+    move();
+    [40,100,200,350,600,900,1300,1800].forEach(ms=>setTimeout(move,ms));
+  }else{
+    window.scrollTo({top:getTop(),behavior:"smooth"});
   }
-  setTimeout(()=>section.classList.remove("uploadFocus"),1100);
+
+  setTimeout(()=>section.classList.remove("uploadFocus"),1900);
   document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));
   document.querySelector('.nav[data-section="upload"]')?.classList.add("active");
 }
@@ -186,8 +195,11 @@ function setFile(f){
   };
   p.load();
 
-  // After choosing a video, keep the user at the Upload Video panel.
+  // After choosing a video, keep the user locked to the Upload Video card.
+  // Do this after the preview is shown so the new preview height cannot push
+  // the page down to the Processing panel.
   requestAnimationFrame(()=>goToUpload(true));
+  setTimeout(()=>goToUpload(true),1200);
 }
 
 function audioBufferToWav(buffer,targetRate=16000){
