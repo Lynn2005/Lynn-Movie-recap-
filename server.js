@@ -148,7 +148,7 @@ async function processJob(id,input,opts){
     try{if(opts.browserAudio&&fs.existsSync(opts.browserAudio))fs.unlinkSync(opts.browserAudio)}catch{}
   }
 }
-app.get("/api/health",(req,res)=>res.json({ok:true,app:"Lynn Movie Recap",version:"2.0.0"}));
+app.get("/api/health",(req,res)=>res.json({ok:true,app:"Lynn Movie Recap",version:"2.1.0",audioFallback:true}));
 app.post("/api/process",upload.fields([
   {name:"video",maxCount:1},
   {name:"browserAudio",maxCount:1}
