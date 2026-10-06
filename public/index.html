@@ -1,17 +1,165 @@
-<!doctype html><html lang="my"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#090a0f"><title>Lynn AI Movie Recap</title><link rel="stylesheet" href="style.css"></head><body>
-<header><div class="brand">LYNN<span>AI</span></div><div class="badge">MOVIE RECAP STUDIO</div></header><main>
-<section class="hero"><small>AI MOVIE WORKFLOW</small><h1>Movie → <em>မြန်မာ Recap</em></h1><p>Audio အရင်ထုတ်ပြီး Original SRT → မြန်မာ SRT → Recap Script → AI Voice → Final MP4</p></section>
-<section class="grid"><div class="card"><div class="title"><b>01</b><div><h2>Video Upload</h2><p>MP4 / MOV / WEBM</p></div></div><label class="drop"><input id="video" type="file" accept="video/*"><strong id="filename">＋ Video ရွေးပါ</strong><span>ဖုန်းထဲက video ကိုရွေးပါ</span></label><div id="previewWrap" class="preview" hidden><video id="preview" controls></video><button id="remove">Remove</button></div></div>
-<div class="card"><div class="title"><b>02</b><div><h2>Gemini API</h2><p>Key ကို browser ထဲ save လုပ်နိုင်ပါတယ်</p></div></div><div class="keylabel"><label>Gemini API Key</label><a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">Get API Key ↗</a></div>
-<div class="keyrow"><input id="key" type="password" placeholder="AIza... API Key"><button id="save">SAVE KEY</button></div><div id="saved"></div><div class="opts"><label>Format<select id="ratio"><option value="9:16">9:16 Shorts</option><option value="16:9">16:9 YouTube</option><option value="1:1">1:1 Square</option></select></label><label>Quality<select id="crf"><option value="24">High</option><option value="28" selected>Balanced</option><option value="31">Fast</option></select></label></div></div></section>
-<section class="card pipeline"><div class="title"><b>03</b><div><h2>Processing</h2><p id="status">Ready</p></div><strong id="percent">0%</strong></div><div class="bar"><i id="bar"></i></div><div class="stages"><span>Audio</span><span>Original SRT</span><span>Myanmar SRT</span><span>Recap</span><span>Voice</span><span>MP4</span></div><button id="go">CREATE RECAP <span>→</span></button></section>
-<section id="result" class="card result" hidden><div class="success">✓</div><div><h2>Recap Ready</h2><p>Files အားလုံးကို download လုပ်နိုင်ပါပြီ</p></div><div class="links"><a id="videoLink">FINAL MP4</a><a id="origLink">ORIGINAL SRT</a><a id="myLink">MYANMAR SRT</a><a id="recapLink">RECAP TXT</a></div></section></main><footer>LYNN AI · MOVIE RECAP</footer>
+<!doctype html>
+<html lang="my">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#07152b">
+<title>Lynn Recap — AI Movie Recap</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="logo"><div class="logoMark">▶</div><div><b>Lynn Recap</b><small>Turn Videos into Stories</small></div></div>
+    <nav>
+      <button class="nav active" data-section="home"><span>⌂</span>Home</button>
+      <button class="nav" data-section="upload"><span>⇧</span>Upload Video</button>
+      <button class="nav" data-section="recaps"><span>◷</span>My Recaps</button>
+      <button class="nav" data-section="settings"><span>⚙</span>Settings</button>
+    </nav>
+    <div class="sideBottom"><i></i>Ready</div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="mobileBrand"><div class="logoMark">▶</div><b>Lynn Recap</b></div>
+      <div class="topActions">
+        <div class="miniKey"><span>⚿</span><label>Gemini API Key<em id="keyDots">••••••••••••••</em></label><button id="topEdit">✎</button></div>
+        <button class="iconBtn" id="themeBtn">☼</button>
+        <button class="avatar">●</button>
+      </div>
+    </header>
+
+    <section class="hero" id="home">
+      <div class="heroArt">
+        <div class="heroGlow"></div>
+        <div class="heroCopy">
+          <div class="heroLogo">▶</div>
+          <div>
+            <h1>Lynn Recap</h1>
+            <h2>AI-Powered Video Recap Generator</h2>
+            <p>မူရင်းဗီဒီယိုကို မြန်မာ Recap အဖြစ် ပြောင်းပေးပါ</p>
+          </div>
+        </div>
+        <div class="featureRow">
+          <span>◉ <b>Auto Extract Audio</b></span><span>▤ <b>Generate Subtitles</b></span><span>✎ <b>AI Recap Script</b></span><span>♩ <b>Text to Speech</b></span>
+        </div>
+      </div>
+    </section>
+
+    <section class="workspace" id="upload">
+      <div class="leftCol">
+        <div class="panel uploadPanel">
+          <div class="panelHead"><div class="roundIcon">⇧</div><div><h3>1. Upload Video</h3><p>Choose a video file or drag and drop here</p></div></div>
+          <label class="dropzone" id="dropzone">
+            <input id="video" type="file" accept="video/mp4,video/x-matroska,video/quicktime,video/webm,video/*">
+            <div class="uploadIcon">⇧</div><strong>Drag &amp; drop your video here</strong><span>or</span><b>▣ &nbsp; Choose File</b><small>Supported formats: MP4, MKV, AVI, MOV, WEBM &nbsp; | &nbsp; Max size: 2GB</small>
+          </label>
+          <div id="fileInfo" class="fileInfo" hidden><span>🎬</span><div><b id="filename"></b><small id="filesize"></small></div><button id="remove">×</button></div>
+          <video id="preview" class="preview" controls hidden></video>
+        </div>
+
+        <div class="panel processing" id="progressPanel">
+          <div class="panelHead progressHead"><div class="spinner" id="spinner"></div><div><h3>Processing Your Video</h3><p id="status">Ready to start</p></div><strong id="stepLabel">Step 0 of 7</strong></div>
+          <div class="steps">
+            <div class="step" data-stage="upload"><i>✓</i><span>Upload</span></div>
+            <div class="step" data-stage="audio"><i>2</i><span>Extract<br>Audio</span></div>
+            <div class="step" data-stage="transcription"><i>3</i><span>Generate SRT<br>(Original)</span></div>
+            <div class="step" data-stage="translation"><i>4</i><span>Translate SRT<br>(Burmese)</span></div>
+            <div class="step" data-stage="recap"><i>5</i><span>Generate Script</span></div>
+            <div class="step" data-stage="voice"><i>6</i><span>AI Voice</span></div>
+            <div class="step" data-stage="render"><i>7</i><span>Render Video</span></div>
+          </div>
+          <div class="progressLine"><i id="bar"></i></div>
+          <div class="progressMeta"><span id="progressText">Waiting for video...</span><b id="percent">0%</b></div>
+        </div>
+
+        <div id="result" class="panel resultPanel" hidden>
+          <div class="resultTop"><div class="success">✓</div><div><h3>Processing Complete!</h3><p>Your recap video and files are ready.</p></div><button class="more">•••</button></div>
+          <div class="resultBody"><div class="thumb"><video id="resultPreview" controls></video></div><div class="resultInfo"><h4 id="resultTitle">Your Movie Recap</h4><p>Final recap video generated successfully.</p><div class="downloadGrid"><a id="videoLink" class="primary">⇩ Download Video</a><a id="origLink">▤ Original SRT</a><a id="myLink">文 Burmese SRT</a><a id="recapLink">▤ Recap Script</a></div></div></div>
+        </div>
+      </div>
+
+      <aside class="rightCol">
+        <div class="panel quick">
+          <div class="quickTitle">⚙ <h3>Quick Settings</h3></div>
+          <label>Gemini API Key</label>
+          <div class="keyInput"><input id="key" type="password" placeholder="AIza..."><button id="eye">◉</button></div>
+          <div class="keyButtons"><button id="save" class="save">♧ &nbsp; Save Key</button><button id="test">♧ &nbsp; Test Connection</button></div>
+          <div id="saved" class="saved"></div>
+          <div class="setting"><label>AI Voice</label><div class="selectFake">🇲🇲 &nbsp; Myanmar (Female) <span>⌄</span></div></div>
+          <div class="setting"><label>Recap Style</label><select id="style"><option>Short &amp; Engaging</option><option>Detailed Storytelling</option><option>Casual Burmese</option></select></div>
+          <div class="setting"><label>Video Format</label><select id="ratio"><option value="9:16">9:16 — Shorts / TikTok</option><option value="16:9">16:9 — YouTube</option><option value="1:1">1:1 — Square</option></select></div>
+          <div class="setting"><label>Render Quality</label><select id="crf"><option value="24">High Quality</option><option value="28" selected>Balanced</option><option value="31">Fast</option></select></div>
+        </div>
+
+        <div class="panel recent" id="recaps">
+          <div class="recentHead"><h3>◷ &nbsp; Recent Projects</h3><button>View All</button></div>
+          <div class="emptyRecent">Your completed recaps will appear here.</div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="features" id="settings">
+      <div class="sectionTitle"><span>☆</span><div><h2>All Features</h2><p>Everything you need for a complete video recap workflow</p></div></div>
+      <div class="featureGrid">
+        <div><i>⇧</i><b>Video Upload</b><small>Upload your video file</small></div>
+        <div><i>◉</i><b>Audio Extraction</b><small>Extract audio using FFmpeg</small></div>
+        <div><i>▤</i><b>Original Subtitle (.srt)</b><small>Generate original subtitles with timestamps</small></div>
+        <div><i>文</i><b>Burmese Subtitle (.srt)</b><small>Translate to Burmese subtitle</small></div>
+        <div><i>✎</i><b>Burmese Recap Script</b><small>Generate engaging recap script</small></div>
+        <div><i>♩</i><b>AI Voice</b><small>Convert script to natural Burmese voice</small></div>
+        <div><i>⚙</i><b>FFmpeg Processing</b><small>Professional video/audio processing</small></div>
+        <div><i>▶</i><b>Render Video</b><small>Combine everything into final video</small></div>
+      </div>
+    </section>
+    <footer><b>▶ Lynn Recap</b><span>Mobile Friendly</span><span>FFmpeg</span><span>Gemini AI</span><span>Docker Ready</span><span>Render.com</span><em>Small videos... Big stories. ♡</em></footer>
+  </main>
+</div>
+
 <script>
-const $=id=>document.getElementById(id);let saved=localStorage.getItem("lynn_gemini_key")||"";$("key").value=saved;if(saved)$("saved").textContent="✓ API Key Saved";
-$("save").onclick=()=>{const k=$("key").value.trim();if(k){localStorage.setItem("lynn_gemini_key",k);$("saved").textContent="✓ API Key Saved"}};
-$("video").onchange=()=>{const f=$("video").files[0];if(!f)return;$("filename").textContent=f.name;$("preview").src=URL.createObjectURL(f);$("previewWrap").hidden=false};
-$("remove").onclick=()=>{$("video").value="";$("previewWrap").hidden=true;$("filename").textContent="＋ Video ရွေးပါ"};
-function setProgress(n,s){$("bar").style.width=n+"%";$("percent").textContent=n+"%";$("status").textContent=s}
-async function poll(id){const r=await fetch("/api/status/"+id);const j=await r.json();if(!r.ok)throw Error(j.error||"Status error");const labels={queued:"Queue ထဲထည့်နေပါတယ်…",audio:"Audio extract လုပ်နေပါတယ်…",transcription:"Original SRT ထုတ်နေပါတယ်…",translation:"မြန်မာဘာသာပြန်နေပါတယ်…",recap:"Recap script ရေးနေပါတယ်…",voice:"AI Voice ဖန်တီးနေပါတယ်…",render:"Final MP4 render လုပ်နေပါတယ်…",complete:"ပြီးပါပြီ ✓"};setProgress(j.progress||0,labels[j.stage]||j.stage);if(j.status==="complete"){for(const [id,url] of [["videoLink",j.files.video],["origLink",j.files.originalSrt],["myLink",j.files.burmeseSrt],["recapLink",j.files.recap]])$(id).href=url;$("result").hidden=false;$("go").disabled=false;return}if(j.status==="error"){setProgress(0,"✕ "+j.error);$("go").disabled=false;return}setTimeout(()=>poll(id),1500)}
-$("go").onclick=async()=>{const f=$("video").files[0],k=localStorage.getItem("lynn_gemini_key")||$("key").value.trim();if(!f)return setProgress(0,"Video ရွေးပါ");if(!k)return setProgress(0,"Gemini API Key ထည့်ပါ");$("go").disabled=true;$("result").hidden=true;try{setProgress(5,"Upload လုပ်နေပါတယ်…");const fd=new FormData();fd.append("video",f);fd.append("ratio",$("ratio").value);fd.append("crf",$("crf").value);const r=await fetch("/api/process",{method:"POST",headers:{"x-gemini-api-key":k},body:fd});const j=await r.json();if(!r.ok)throw Error(j.error||"Processing failed");poll(j.jobId)}catch(e){setProgress(0,"✕ "+e.message);$("go").disabled=false}};
-</script></body></html>
+const $=id=>document.getElementById(id);
+let saved=localStorage.getItem("lynn_gemini_key")||"";
+$("key").value=saved;
+function showSaved(){ $("saved").textContent=saved?"✓ API Key Saved":""; $("keyDots").textContent=saved?"••••••••••••••":"Not saved"; }
+showSaved();
+
+$("save").onclick=()=>{const k=$("key").value.trim();if(!k)return $("saved").textContent="Please enter your Gemini API Key";localStorage.setItem("lynn_gemini_key",k);saved=k;showSaved();};
+$("topEdit").onclick=()=>{$("key").focus();$("key").scrollIntoView({behavior:"smooth",block:"center"});};
+$("eye").onclick=()=>{$("key").type=$("key").type==="password"?"text":"password";};
+$("test").onclick=async()=>{const k=$("key").value.trim();if(!k)return $("saved").textContent="Please enter your API Key";$("test").disabled=true;$("test").textContent="Testing...";try{const r=await fetch("/api/health");if(!r.ok)throw Error("Server unavailable");$("saved").textContent="✓ Server connection OK";}catch(e){$("saved").textContent="✕ "+e.message;}finally{$("test").disabled=false;$("test").textContent="♧  Test Connection";}};
+
+$("video").onchange=()=>setFile($("video").files[0]);
+function setFile(f){if(!f)return;$("filename").textContent=f.name;$("filesize").textContent=(f.size/1024/1024).toFixed(1)+" MB";$("fileInfo").hidden=false;$("preview").src=URL.createObjectURL(f);$("preview").hidden=false;}
+$("remove").onclick=()=>{$("video").value="";$("fileInfo").hidden=true;$("preview").hidden=true;$("preview").removeAttribute("src");};
+["dragenter","dragover"].forEach(e=>$("dropzone").addEventListener(e,x=>{x.preventDefault();$("dropzone").classList.add("drag");}));
+["dragleave","drop"].forEach(e=>$("dropzone").addEventListener(e,x=>{x.preventDefault();$("dropzone").classList.remove("drag");}));
+$("dropzone").addEventListener("drop",e=>{const f=e.dataTransfer.files[0];if(f){const dt=new DataTransfer();dt.items.add(f);$("video").files=dt.files;setFile(f);}});
+
+const stageOrder=["queued","audio","transcription","translation","recap","voice","render","complete"];
+const stageText={queued:"Uploading and preparing your video...",audio:"Extracting audio with FFmpeg...",transcription:"Generating original subtitles with Gemini AI...",translation:"Translating subtitles into Burmese...",recap:"Generating Burmese recap script with Gemini AI...",voice:"Creating Burmese AI voice...",render:"Rendering final recap video...",complete:"Processing complete!"};
+function setProgress(n,s,stage){
+  $("bar").style.width=Math.max(0,n)+"%";$("percent").textContent=Math.round(n)+"%";$("status").textContent=s;
+  $("spinner").classList.toggle("done",stage==="complete");$("stepLabel").textContent=stage==="complete"?"Complete ✓":"Step "+(stageOrder.indexOf(stage)+1)+" of 7";
+  document.querySelectorAll(".step").forEach(el=>{const key=el.dataset.stage,idx=stageOrder.indexOf(key),cur=stageOrder.indexOf(stage);el.classList.toggle("done",idx<cur||stage==="complete");el.classList.toggle("current",key===stage);});
+}
+async function poll(id){
+  const r=await fetch("/api/status/"+id),j=await r.json();if(!r.ok)throw Error(j.error||"Status error");
+  setProgress(j.progress||0,stageText[j.stage]||j.stage,j.stage);
+  if(j.status==="complete"){
+    for(const [id,url] of [["videoLink",j.files.video],["origLink",j.files.originalSrt],["myLink",j.files.burmeseSrt],["recapLink",j.files.recap]])$(id).href=url;
+    $("resultPreview").src=j.files.video;$("result").hidden=false;$("result").scrollIntoView({behavior:"smooth",block:"center"});return;
+  }
+  if(j.status==="error"){ $("spinner").classList.remove("done");$("status").textContent="✕ "+j.error; $("progressText").textContent="Processing failed"; $("percent").textContent="0%";$("bar").style.width="0"; $("go").disabled=false;return;}
+  $("progressText").textContent=stageText[j.stage]||"Processing...";
+  setTimeout(()=>poll(id),1500);
+}
+$("go")?.addEventListener("click",async()=>{const f=$("video").files[0],k=localStorage.getItem("lynn_gemini_key")||$("key").value.trim();if(!f){setProgress(0,"Please choose a video first","queued");$("upload").scrollIntoView({behavior:"smooth"});return;}if(!k){setProgress(0,"Please enter your Gemini API Key","queued");$("key").focus();return;}
+  $("go").disabled=true;$("result").hidden=true;setProgress(5,"Uploading video...","queued");
+  try{const fd=new FormData();fd.append("video",f);fd.append("ratio",$("ratio").value);fd.append("crf",$("crf").value);const r=await fetch("/api/process",{method:"POST",headers:{"x-gemini-api-key":k},body:fd});const j=await r.json();if(!r.ok)throw Error(j.error||"Processing failed");await poll(j.jobId);}catch(e){$("status").textContent="✕ "+e.message;$("percent").textContent="0%";$("go").disabled=false;}
+});
+document.querySelectorAll(".nav").forEach(n=>n.onclick=()=>{document.getElementById(n.dataset.section).scrollIntoView({behavior:"smooth",block:"start"});document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));n.classList.add("active");});
+$("themeBtn").onclick=()=>document.body.classList.toggle("bright");
+</script>
+</body>
+</html>
