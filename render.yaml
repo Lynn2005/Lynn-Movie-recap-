@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: lynn-movie-recap-new
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: MAX_FILE_MB
+        value: 500
