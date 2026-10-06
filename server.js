@@ -122,7 +122,7 @@ async function processJob(id,input,opts){
     const b64=fs.readFileSync(audio).toString("base64");
     const original=cleanSrt(await gemini(
       "Create an accurate ORIGINAL-language subtitle transcript from this audio. Return ONLY valid SRT. Use sequential cue numbers and HH:MM:SS,mmm timestamps. Do not translate or explain.",
-      key,b64,model
+      key,b64,opts.model
     ));
     if(!original.trim())throw new Error("Original subtitle မထွက်လာပါ။");
     fs.writeFileSync(path.join(dir,"original.srt"),original);
