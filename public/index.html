@@ -134,6 +134,18 @@ $("test").onclick=async()=>{const k=$("key").value.trim();if(!k)return $("saved"
 
 $("video").onchange=()=>setFile($("video").files[0]);
 
+function goToUpload(){
+  const section=$("upload");
+  if(!section)return;
+  section.classList.add("uploadFocus");
+  section.scrollIntoView({behavior:"smooth",block:"start"});
+  setTimeout(()=>section.classList.remove("uploadFocus"),900);
+  document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));
+  document.querySelector('.nav[data-section="upload"]')?.classList.add("active");
+}
+
+
+
 let selectedFile=null;
 
 function setFile(f){
@@ -163,6 +175,9 @@ function setFile(f){
     $("audioStatus").classList.toggle("warn",!hasAudio);
   };
   p.load();
+
+  // After choosing a video, keep the user at the Upload Video panel.
+  requestAnimationFrame(()=>goToUpload());
 }
 
 function audioBufferToWav(buffer,targetRate=16000){
@@ -310,7 +325,14 @@ $("go")?.addEventListener("click",async()=>{const f=$("video").files[0],k=localS
     await poll(j.jobId);
   }catch(e){$("status").textContent="✕ "+e.message;$("percent").textContent="0%";$("go").disabled=false;}
 });
-document.querySelectorAll(".nav").forEach(n=>n.onclick=()=>{document.getElementById(n.dataset.section).scrollIntoView({behavior:"smooth",block:"start"});document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));n.classList.add("active");});
+document.querySelectorAll(".nav").forEach(n=>n.onclick=()=>{
+  if(n.dataset.section==="upload"){goToUpload();return;}
+  const target=$(n.dataset.section);
+  if(!target)return;
+  target.scrollIntoView({behavior:"smooth",block:"start"});
+  document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));
+  n.classList.add("active");
+});
 $("themeBtn").onclick=()=>document.body.classList.toggle("bright");
 </script>
 </body>
