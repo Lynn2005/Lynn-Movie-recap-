@@ -160,7 +160,6 @@ async function createVoiceJob(id,burmeseSrt,opts){
     job(id,{
       status:"complete",stage:"voice_ready",progress:100,error:null,
       files:{
-        originalSrt:"/api/download/"+id+"/original.srt",
         burmeseSrt:"/api/download/"+id+"/burmese.srt",
         voice:"/api/download/"+id+"/voice.mp3"
       }
