@@ -40,23 +40,55 @@ async function tts(text,file){
   const {ttsSave}=require("edge-tts");
   await ttsSave(text,file,{voice:process.env.TTS_VOICE||"my-MM-ThihaNeural",rate:process.env.TTS_RATE||"-5%",volume:"+0%",pitch:"+0Hz"});
 }
-async function extractAudio(input,audio){
-  // Let FFmpeg decode the first available audio stream. We deliberately avoid
-  // depending only on ffprobe stream metadata because some mobile/downloaded
-  // MP4 files expose unusual container metadata.
-  const attempts=[
-    ["-y","-hide_banner","-loglevel","error","-i",input,"-vn","-ac","1","-ar","16000","-c:a","pcm_s16le",audio],
-    ["-y","-hide_banner","-loglevel","error","-i",input,"-map","0:a:0?","-vn","-ac","1","-ar","16000","-c:a","pcm_s16le",audio]
-  ];
-  let last="";
-  for(const args of attempts){
-    try{
-      await run(ffmpeg,args);
-      if(fs.existsSync(audio)&&fs.statSync(audio).size>2048)return true;
-    }catch(e){last=String(e.message||e)}
-    try{if(fs.existsSync(audio))fs.unlinkSync(audio)}catch{}
+async function probeAudioStream(input){
+  try{
+    const out=await run(ffprobe.path,[
+      "-v","error",
+      "-select_streams","a:0",
+      "-show_entries","stream=index,codec_name,codec_type",
+      "-of","json",
+      input
+    ]);
+    const data=JSON.parse(out||"{}");
+    return data.streams&&data.streams.length?data.streams[0]:null;
+  }catch(e){
+    return null;
   }
-  throw new Error("Audio ကို Video ထဲကနေ Extract မလုပ်နိုင်ပါ။ FFmpeg က ဒီဖိုင်ထဲမှာ ဖတ်နိုင်တဲ့ Audio Stream မတွေ့ပါ။ မူရင်းအသံပါတဲ့ MP4/MOV ကို ပြန်တင်ပါ။"+(last?("\n"+last.split("\n").slice(-3).join("\n")):""));
+}
+
+async function extractAudio(input,audio){
+  // First verify that the uploaded media really contains an audio stream.
+  // Then force the WAV muxer explicitly so FFmpeg does not guess the output format.
+  const stream=await probeAudioStream(input);
+  if(!stream){
+    throw new Error("ဒီ Video ဖိုင်ကို Server က စစ်ကြည့်ရာမှာ Audio Stream မတွေ့ပါ။ Browser ရဲ့ speaker icon တစ်ခုတည်းနဲ့ မူရင်း Audio ပါတယ်လို့ မသေချာပါ။ မူရင်းအသံပါတဲ့ MP4/MOV ဖိုင်ကို တိုက်ရိုက်တင်ပါ။");
+  }
+
+  try{if(fs.existsSync(audio))fs.unlinkSync(audio)}catch{}
+
+  const args=[
+    "-y","-nostdin","-hide_banner","-loglevel","error",
+    "-i",input,
+    "-map","0:a:0",
+    "-vn",
+    "-ac","1",
+    "-ar","16000",
+    "-c:a","pcm_s16le",
+    "-f","wav",
+    audio
+  ];
+
+  try{
+    await run(ffmpeg,args);
+  }catch(e){
+    const msg=String(e.message||e);
+    throw new Error("Audio Stream ရှိပေမယ့် WAV Audio Extract လုပ်ရာမှာ FFmpeg error ဖြစ်နေပါတယ်။\n"+msg.split("\n").slice(-6).join("\n"));
+  }
+
+  if(!fs.existsSync(audio)||fs.statSync(audio).size<2048){
+    throw new Error("Audio Stream ရှိပေမယ့် audio.wav ဖိုင်မထွက်လာပါ။");
+  }
+  return true;
 }
 
 async function processJob(id,input,opts){
