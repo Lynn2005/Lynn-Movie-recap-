@@ -56,7 +56,9 @@
             <div class="uploadIcon">⇧</div><strong>Drag &amp; drop your video here</strong><span>or</span><b>▣ &nbsp; Choose File</b><small>Supported formats: MP4, MKV, AVI, MOV, WEBM &nbsp; | &nbsp; Max size: 2GB</small>
           </label>
           <div id="fileInfo" class="fileInfo" hidden><span>🎬</span><div><b id="filename"></b><small id="filesize"></small></div><button id="remove">×</button></div>
-          <video id="preview" class="preview" controls playsinline preload="metadata" hidden></video><div id="audioStatus" class="audioStatus" hidden>🔊 Original audio ready</div>
+          <video id="preview" class="preview" controls playsinline preload="metadata" hidden></video>
+          <div id="audioStatus" class="audioStatus" hidden>🔊 Original audio ready</div>
+          <div id="audioBackup" class="audioBackup" hidden>⏳ Audio backup preparing...</div>
         </div>
 
         <div class="panel processing" id="progressPanel">
@@ -131,8 +133,12 @@ $("eye").onclick=()=>{$("key").type=$("key").type==="password"?"text":"password"
 $("test").onclick=async()=>{const k=$("key").value.trim();if(!k)return $("saved").textContent="Please enter your API Key";$("test").disabled=true;$("test").textContent="Testing...";try{const r=await fetch("/api/health");if(!r.ok)throw Error("Server unavailable");$("saved").textContent="✓ Server connection OK";}catch(e){$("saved").textContent="✕ "+e.message;}finally{$("test").disabled=false;$("test").textContent="♧  Test Connection";}};
 
 $("video").onchange=()=>setFile($("video").files[0]);
+
+let selectedFile=null;
+
 function setFile(f){
   if(!f)return;
+  selectedFile=f;
   $("filename").textContent=f.name;
   $("filesize").textContent=(f.size/1024/1024).toFixed(1)+" MB";
   $("fileInfo").hidden=false;
@@ -146,18 +152,106 @@ function setFile(f){
   p.src=URL.createObjectURL(f);
   p.hidden=false;
   $("audioStatus").hidden=false;
+  $("audioBackup").hidden=true;
   $("audioStatus").textContent="🔎 Checking original audio...";
   p.onloadedmetadata=()=>{
     p.muted=false;
     p.volume=1;
     const hasAudio=(typeof p.mozHasAudio==="boolean"&&p.mozHasAudio)||
       (typeof p.webkitAudioDecodedByteCount==="number"&&p.webkitAudioDecodedByteCount>0);
-    $("audioStatus").textContent=hasAudio?"🔊 Original audio detected":"🔊 Audio control ready — tap the speaker if needed";
+    $("audioStatus").textContent=hasAudio?"🔊 Original audio ready":"🔊 Browser audio backup will be used when possible";
     $("audioStatus").classList.toggle("warn",!hasAudio);
   };
   p.load();
 }
+
+function audioBufferToWav(buffer,targetRate=16000){
+  const inputRate=buffer.sampleRate, channels=buffer.numberOfChannels;
+  const length=Math.max(1,Math.round(buffer.length*targetRate/inputRate));
+  const pcm=new Int16Array(length);
+  for(let i=0;i<length;i++){
+    const pos=i*inputRate/targetRate, a=Math.floor(pos), b=Math.min(a+1,buffer.length-1), frac=pos-a;
+    let sum=0;
+    for(let ch=0;ch<channels;ch++){
+      const data=buffer.getChannelData(ch);
+      sum += data[a]*(1-frac)+data[b]*frac;
+    }
+    let v=(sum/channels)*32767;
+    v=Math.max(-32768,Math.min(32767,v));
+    pcm[i]=v;
+  }
+  const wav=new ArrayBuffer(44+pcm.length*2), view=new DataView(wav);
+  const write=(o,str)=>{for(let i=0;i<str.length;i++)view.setUint8(o+i,str.charCodeAt(i));};
+  write(0,"RIFF"); view.setUint32(4,36+pcm.length*2,true); write(8,"WAVE");
+  write(12,"fmt "); view.setUint32(16,16,true); view.setUint16(20,1,true); view.setUint16(22,1,true);
+  view.setUint32(24,targetRate,true); view.setUint32(28,targetRate*2,true); view.setUint16(32,2,true); view.setUint16(34,16,true);
+  write(36,"data"); view.setUint32(40,pcm.length*2,true);
+  new Uint8Array(wav,44).set(new Uint8Array(pcm.buffer));
+  return new Blob([wav],{type:"audio/wav"});
+}
+
+async function makeBrowserAudio(file){
+  // Fast path: decode the media directly in the browser when supported.
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext;
+    if(AC){
+      const ctx=new AC();
+      try{
+        const ab=await file.arrayBuffer();
+        const decoded=await ctx.decodeAudioData(ab.slice(0));
+        const blob=audioBufferToWav(decoded,16000);
+        await ctx.close();
+        if(blob.size>2048)return new File([blob],"browser-audio.wav",{type:"audio/wav"});
+      }catch(e){
+        try{await ctx.close()}catch{}
+      }
+    }
+  }catch(e){}
+
+  // Fallback for Android Chrome: capture the playable media's audio track.
+  try{
+    const p=$("preview");
+    const stream=(p.captureStream&&p.captureStream())||(p.mozCaptureStream&&p.mozCaptureStream());
+    if(stream){
+      let tracks=stream.getAudioTracks();
+      if(!tracks.length){
+        const AC=window.AudioContext||window.webkitAudioContext;
+        if(AC){
+          const ctx=new AC(), src=ctx.createMediaElementSource(p), dest=ctx.createMediaStreamDestination();
+          src.connect(dest); src.connect(ctx.destination);
+          tracks=dest.stream.getAudioTracks();
+          p._audioCtx=ctx;
+          p._audioSource=src;
+        }
+      }
+      if(tracks.length){
+        const recStream=new MediaStream(tracks);
+        const mime=MediaRecorder.isTypeSupported("audio/webm;codecs=opus")?"audio/webm;codecs=opus":"audio/webm";
+        const rec=new MediaRecorder(recStream,{mimeType:mime});
+        const chunks=[];
+        return await new Promise(async(resolve,reject)=>{
+          rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
+          rec.onerror=e=>reject(e.error||new Error("Browser audio recorder failed"));
+          rec.onstop=()=>{
+            const blob=new Blob(chunks,{type:mime});
+            resolve(blob.size>1024?new File([blob],"browser-audio.webm",{type:mime}):null);
+          };
+          const oldRate=p.playbackRate;
+          const oldTime=p.currentTime;
+          p.muted=false;p.volume=1;p.playbackRate=1;
+          rec.start(250);
+          try{await p.play()}catch(e){rec.stop();return reject(e)}
+          const stop=()=>{p.removeEventListener("ended",stop);try{rec.stop()}catch{};p.pause();p.currentTime=oldTime;p.playbackRate=oldRate;};
+          p.addEventListener("ended",stop,{once:true});
+        });
+      }
+    }
+  }catch(e){}
+  return null;
+}
+
 $("remove").onclick=()=>{
+  selectedFile=null;
   $("video").value="";
   $("fileInfo").hidden=true;
   $("preview").pause();
@@ -165,6 +259,7 @@ $("remove").onclick=()=>{
   $("preview").removeAttribute("src");
   $("preview").load();
   $("audioStatus").hidden=true;
+  $("audioBackup").hidden=true;
 };
 ["dragenter","dragover"].forEach(e=>$("dropzone").addEventListener(e,x=>{x.preventDefault();$("dropzone").classList.add("drag");}));
 ["dragleave","drop"].forEach(e=>$("dropzone").addEventListener(e,x=>{x.preventDefault();$("dropzone").classList.remove("drag");}));
@@ -190,7 +285,30 @@ async function poll(id){
 }
 $("go")?.addEventListener("click",async()=>{const f=$("video").files[0],k=localStorage.getItem("lynn_gemini_key")||$("key").value.trim();if(!f){setProgress(0,"Please choose a video first","queued");$("upload").scrollIntoView({behavior:"smooth"});return;}if(!k){setProgress(0,"Please enter your Gemini API Key","queued");$("key").focus();return;}
   $("go").disabled=true;$("result").hidden=true;setProgress(5,"Uploading video...","queued");
-  try{const fd=new FormData();fd.append("video",f);fd.append("ratio",$("ratio").value);fd.append("crf",$("crf").value);const r=await fetch("/api/process",{method:"POST",headers:{"x-gemini-api-key":k},body:fd});const j=await r.json();if(!r.ok)throw Error(j.error||"Processing failed");await poll(j.jobId);}catch(e){$("status").textContent="✕ "+e.message;$("percent").textContent="0%";$("go").disabled=false;}
+  try{
+    const fd=new FormData();
+    fd.append("video",f);
+    fd.append("ratio",$("ratio").value);
+    fd.append("crf",$("crf").value);
+
+    $("audioBackup").hidden=false;
+    $("audioBackup").textContent="⏳ Checking / preparing browser audio backup...";
+    let browserAudio=null;
+    try{browserAudio=await makeBrowserAudio(f);}catch(e){}
+    if(browserAudio){
+      fd.append("browserAudio",browserAudio);
+      $("audioBackup").textContent="✓ Browser audio backup attached";
+      $("audioBackup").classList.remove("warn");
+    }else{
+      $("audioBackup").textContent="ℹ️ Sending original video — Server will try its own audio track first";
+      $("audioBackup").classList.add("warn");
+    }
+
+    const r=await fetch("/api/process",{method:"POST",headers:{"x-gemini-api-key":k},body:fd});
+    const j=await r.json();
+    if(!r.ok)throw Error(j.error||"Processing failed");
+    await poll(j.jobId);
+  }catch(e){$("status").textContent="✕ "+e.message;$("percent").textContent="0%";$("go").disabled=false;}
 });
 document.querySelectorAll(".nav").forEach(n=>n.onclick=()=>{document.getElementById(n.dataset.section).scrollIntoView({behavior:"smooth",block:"start"});document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));n.classList.add("active");});
 $("themeBtn").onclick=()=>document.body.classList.toggle("bright");
