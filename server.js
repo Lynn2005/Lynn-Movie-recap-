@@ -30,8 +30,7 @@ function srtTime(sec){const ms=Math.max(0,Math.round(sec*1000)),h=Math.floor(ms/
 function cleanSrt(t){t=String(t||"").replace(/^```(?:srt|text)?/i,"").replace(/```$/,"").trim();const m=t.match(/(?:^|\n)\d+\s*\n\d\d:\d\d:\d\d,\d{3}\s*-->\s*\d\d:\d\d:\d\d,\d{3}[\s\S]*/);return(m?m[0]:t).trim()}
 function parseSrt(srt){return srt.split(/\n\s*\n/).map(b=>{const l=b.split(/\r?\n/),i=l.findIndex(x=>x.includes("-->"));if(i<0)return null;const m=l[i].match(/(\d\d:\d\d:\d\d,\d{3})\s*-->\s*(\d\d:\d\d:\d\d,\d{3})/);return m?{start:m[1],end:m[2],text:l.slice(i+1).join(" ").trim()}:null}).filter(Boolean)}
 async function gemini(prompt,key,audioBase64,modelName){
-  // Gemini is no longer used for automatic transcription/translation.
-  // Keep this helper only for future recap features.
+  // Gemini generates the original-language SRT from extracted audio.
   const gen=new GoogleGenerativeAI(key);
   const model=gen.getGenerativeModel({model:modelName||process.env.GEMINI_MODEL||"gemini-3.8-flash"});
   const parts=audioBase64?[{inlineData:{data:audioBase64,mimeType:"audio/wav"}},{text:prompt}]:prompt;
@@ -180,7 +179,7 @@ app.post("/api/process",upload.fields([
   const model=getModel(req);
   const id=crypto.randomUUID();
   job(id,{status:"queued",stage:"queued",progress:3,audioBackup:!!browserAudio});
-  processJob(id,video.path,{key,ratio:req.body.ratio,crf:req.body.crf,browserAudio:browserAudio?.path||null});
+  processJob(id,video.path,{key,model,ratio:req.body.ratio,crf:req.body.crf,browserAudio:browserAudio?.path||null});
   res.json({jobId:id});
 });
 
