@@ -30,7 +30,10 @@ function cleanSrt(t){t=String(t||"").replace(/^```(?:srt|text)?/i,"").replace(/`
 function parseSrt(srt){return srt.split(/\n\s*\n/).map(b=>{const l=b.split(/\r?\n/),i=l.findIndex(x=>x.includes("-->"));if(i<0)return null;const m=l[i].match(/(\d\d:\d\d:\d\d,\d{3})\s*-->\s*(\d\d:\d\d:\d\d,\d{3})/);return m?{start:m[1],end:m[2],text:l.slice(i+1).join(" ").trim()}:null}).filter(Boolean)}
 async function gemini(prompt,key,audioBase64){
   const gen=new GoogleGenerativeAI(key);
-  const model=gen.getGenerativeModel({model:process.env.GEMINI_MODEL||"gemini-2.5-flash"});
+  const configuredModel=process.env.GEMINI_MODEL||"gemini-3.8-flash";
+  // Gemini 2.5 Flash is restricted for new users; automatically migrate the old setting.
+  const modelName=configuredModel==="gemini-2.5-flash"?"gemini-3.8-flash":configuredModel;
+  const model=gen.getGenerativeModel({model:modelName});
   const parts=audioBase64?[{inlineData:{data:audioBase64,mimeType:"audio/wav"}},{text:prompt}]:prompt;
   let last;
   for(let i=0;i<3;i++){try{return (await model.generateContent(parts)).response.text()}catch(e){last=e;if(!/503|UNAVAILABLE|overloaded|high demand|429/i.test(String(e.message||e)))throw e;await sleep(1500*(i+1))}}
