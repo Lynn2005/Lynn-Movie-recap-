@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: lynn-movie-recap-new
+    name: lynn-movie-recap
     env: node
     plan: free
     buildCommand: npm install
@@ -8,5 +8,11 @@ services:
     envVars:
       - key: NODE_VERSION
         value: 20
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
       - key: MAX_FILE_MB
         value: 500
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: TTS_VOICE
+        value: my-MM-ThihaNeural
