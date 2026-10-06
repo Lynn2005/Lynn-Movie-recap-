@@ -86,11 +86,11 @@
         <div class="card settings">
           <div class="cardTitle"><span class="gear">✦</span><div><h3>Gemini AI</h3><p>Original SRT ထုတ်ဖို့ Gemini ကို အသုံးပြုပါတယ်</p></div></div>
           <label class="settingLabel">Gemini Model</label>
-          <select id="geminiModel" class="modelSelect"><option value="gemini-3.8-flash">Gemini 3.8 Flash</option></select>
-          <div class="settingHint">⚡ Fast • Original audio → SRT</div>
+          <select id="geminiModel" class="modelSelect"><option value="gemini-3.8-flash">Gemini 3.8 Flash — Free</option><option value="gemini-3.7-flash">Gemini 3.7 Flash — Free</option><option value="gemini-3.5-flash-lite">Gemini 3.5 Flash-Lite — Free</option></select>
+          <div class="settingHint">⚡ Free-tier AI • Original audio → SRT • Error ဖြစ်ရင် fallback model သုံးမယ်</div>
           <label class="settingLabel">Gemini API Key</label>
           <div class="keyRow"><input id="key" type="password" placeholder="AIza..."><button id="eye">◉</button></div>
-          <div class="buttonRow"><button id="save" class="save">💾 Save Key</button><button id="test" class="secondary">Test</button></div>
+          <div class="buttonRow"><button id="save" class="save">💾 Save Key</button><button id="test" class="secondary">Test</button></div><div style="margin-top:8px"><a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" style="color:#62e6a1;font-size:11px">🔑 Get Gemini API Key (Free)</a></div>
           <div id="saved" class="saved"></div>
         </div>
         <div class="card statusCard">
