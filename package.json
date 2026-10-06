@@ -1,0 +1,1 @@
+{"name":"lynn-movie-recap-new","version":"1.0.0","private":true,"type":"commonjs","scripts":{"start":"node server.js"},"dependencies":{"@google/generative-ai":"^0.24.1","express":"^4.21.2","multer":"^1.4.5-lts.1","ffmpeg-static":"^5.2.0","ffprobe-static":"^3.1.0","edge-tts":"^1.0.1"}}
