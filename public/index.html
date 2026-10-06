@@ -17,9 +17,14 @@
 
   <main>
     <section class="hero">
-      <div class="heroIcon">▶</div>
-      <div><h1>Lynn Recap</h1><h2>Original SRT → Burmese SRT → AI Voice</h2>
-      <p>ဗီဒီယိုကနေ မူရင်း SRT ထုတ်ပါ။ Gemini မှာ ကိုယ်တိုင် မြန်မာလို ဘာသာပြန်ပြီး SRT ပြန်တင်ပါ။ ပြီးရင် မြန်မာ AI Voice ထုတ်ပေးပါမယ်။</p></div>
+      <div class="heroBrand"><div class="heroIcon">▶</div><div><h1>Lynn Recap</h1><h2>AI Movie Recap Studio</h2></div></div>
+      <div class="heroCopy"><b>Original SRT → Burmese SRT → AI Voice</b><p>Video ကိုတင်ပါ။ Original subtitle ထုတ်ပြီး Gemini မှာ Burmese ဘာသာပြန်ပါ။ ပြီးရင် မြန်မာ AI Voice ထုတ်ပါ။</p></div>
+    </section>
+    <section class="livePanel">
+      <div class="liveLogo">🎬</div>
+      <div class="liveText"><b id="liveTitle">Processing Task</b><small id="liveMsg">Ready — Video တင်ပြီး စတင်နိုင်ပါပြီ</small></div>
+      <div class="ring" id="ring"><span id="ringPercent">0%</span></div>
+      <div class="liveSteps"><span class="on">● Video Upload</span><span>● Original SRT</span><span>● Burmese SRT</span><span>● AI Voice</span></div>
     </section>
 
     <section class="workflow">
@@ -150,7 +155,7 @@ async function makeBrowserAudio(file){
  }catch(e){} return null;
 }
 
-function progress(n,title,msg){$("bar").style.width=n+"%";$("percent").textContent=Math.round(n)+"%";$("statusTitle").textContent=title;$("status").textContent=msg;$("progressText").textContent=msg}
+function progress(n,title,msg){$("bar").style.width=n+"%";$("percent").textContent=Math.round(n)+"%";$("statusTitle").textContent=title;$("status").textContent=msg;$("progressText").textContent=msg;$("ringPercent").textContent=Math.round(n)+"%";$("ring").style.setProperty("--p",Math.max(0,Math.min(100,n))*3.6+"deg");$("liveTitle").textContent=title;$("liveMsg").textContent=msg}
 async function pollOriginal(id){
  const r=await fetch("/api/status/"+id),j=await r.json();if(!r.ok)throw Error(j.error||"Status error");
  if(j.status==="error"){progress(0,"✕ Failed",j.error);$("generateOriginal").disabled=false;return}
