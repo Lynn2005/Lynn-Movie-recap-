@@ -41,30 +41,29 @@ async function tts(text,file){
   await ttsSave(text,file,{voice:process.env.TTS_VOICE||"my-MM-ThihaNeural",rate:process.env.TTS_RATE||"-5%",volume:"+0%",pitch:"+0Hz"});
 }
 async function probeAudioStream(input){
+  // Probe all streams instead of relying only on -select_streams.
+  // This is more tolerant of phone-recorded/container files.
   try{
     const out=await run(ffprobe.path,[
       "-v","error",
-      "-select_streams","a:0",
-      "-show_entries","stream=index,codec_name,codec_type",
+      "-show_streams",
       "-of","json",
       input
     ]);
     const data=JSON.parse(out||"{}");
-    return data.streams&&data.streams.length?data.streams[0]:null;
+    return (data.streams||[]).find(x=>x.codec_type==="audio")||null;
   }catch(e){
     return null;
   }
 }
 
 async function extractAudio(input,audio){
-  // First verify that the uploaded media really contains an audio stream.
-  // Then force the WAV muxer explicitly so FFmpeg does not guess the output format.
+  try{if(fs.existsSync(audio))fs.unlinkSync(audio)}catch{}
+
   const stream=await probeAudioStream(input);
   if(!stream){
-    throw new Error("ဒီ Video ဖိုင်ကို Server က စစ်ကြည့်ရာမှာ Audio Stream မတွေ့ပါ။ Browser ရဲ့ speaker icon တစ်ခုတည်းနဲ့ မူရင်း Audio ပါတယ်လို့ မသေချာပါ။ မူရင်းအသံပါတဲ့ MP4/MOV ဖိုင်ကို တိုက်ရိုက်တင်ပါ။");
+    throw new Error("Upload လုပ်ထားတဲ့ Video ထဲမှာ Server က ဖတ်နိုင်တဲ့ Audio Track မတွေ့ပါ။ Browser Preview မှာ အသံကြားရင်လည်း မူရင်း MP4/MOV ဖိုင်ကို ပြန်ရွေးတင်ပါ။");
   }
-
-  try{if(fs.existsSync(audio))fs.unlinkSync(audio)}catch{}
 
   const args=[
     "-y","-nostdin","-hide_banner","-loglevel","error",
@@ -82,11 +81,11 @@ async function extractAudio(input,audio){
     await run(ffmpeg,args);
   }catch(e){
     const msg=String(e.message||e);
-    throw new Error("Audio Stream ရှိပေမယ့် WAV Audio Extract လုပ်ရာမှာ FFmpeg error ဖြစ်နေပါတယ်။\n"+msg.split("\n").slice(-6).join("\n"));
+    throw new Error("Audio Track တွေ့ပြီးသားဖြစ်ပေမယ့် WAV Extract မအောင်မြင်ပါ။\n"+msg.split("\n").slice(-8).join("\n"));
   }
 
   if(!fs.existsSync(audio)||fs.statSync(audio).size<2048){
-    throw new Error("Audio Stream ရှိပေမယ့် audio.wav ဖိုင်မထွက်လာပါ။");
+    throw new Error("Audio Track ရှိပေမယ့် audio.wav ဖိုင် မထွက်လာပါ။");
   }
   return true;
 }
