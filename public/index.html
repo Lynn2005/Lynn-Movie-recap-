@@ -79,7 +79,11 @@
 
       <aside class="right">
         <div class="card settings">
-          <div class="cardTitle"><span class="gear">⚙</span><div><h3>Gemini API Key</h3><p>Key ကို ဒီဖုန်း browser ထဲမှာပဲ သိမ်းထားပါတယ်</p></div></div>
+          <div class="cardTitle"><span class="gear">✦</span><div><h3>Gemini AI</h3><p>Original SRT ထုတ်ဖို့ Gemini ကို အသုံးပြုပါတယ်</p></div></div>
+          <label class="settingLabel">Gemini Model</label>
+          <select id="geminiModel" class="modelSelect"><option value="gemini-3.8-flash">Gemini 3.8 Flash</option></select>
+          <div class="settingHint">⚡ Fast • Original audio → SRT</div>
+          <label class="settingLabel">Gemini API Key</label>
           <div class="keyRow"><input id="key" type="password" placeholder="AIza..."><button id="eye">◉</button></div>
           <div class="buttonRow"><button id="save" class="save">💾 Save Key</button><button id="test" class="secondary">Test</button></div>
           <div id="saved" class="saved"></div>
@@ -108,10 +112,12 @@
 <script>
 const $=id=>document.getElementById(id);
 let saved=localStorage.getItem("lynn_gemini_key")||"";
+let geminiModel=localStorage.getItem("lynn_gemini_model")||"gemini-3.8-flash";
 $("key").value=saved;
 function showSaved(){ $("saved").textContent=saved?"✓ API Key Saved":" "; $("keyDots").textContent=saved?"••••••••••••":"Not saved"; }
-showSaved();
+$("geminiModel").value=geminiModel; showSaved();
 
+$("geminiModel").onchange=()=>{geminiModel=$("geminiModel").value;localStorage.setItem("lynn_gemini_model",geminiModel)};
 $("save").onclick=()=>{const k=$("key").value.trim();if(!k){$("saved").textContent="API Key ထည့်ပါ";return}localStorage.setItem("lynn_gemini_key",k);saved=k;showSaved();};
 $("topEdit").onclick=()=>{$("key").focus();$("key").scrollIntoView({behavior:"smooth",block:"center"});};
 $("eye").onclick=()=>{$("key").type=$("key").type==="password"?"text":"password";};
@@ -166,7 +172,7 @@ $("copyOriginal").onclick=async()=>{try{const r=await fetch($("originalDownload"
    $("audioBackup").hidden=false;$("audioBackup").textContent="⏳ Browser audio backup ပြင်ဆင်နေပါတယ်...";
    let ba=null;try{ba=await makeBrowserAudio(f)}catch(e){}
    if(ba){fd.append("browserAudio",ba);$("audioBackup").textContent="✓ Audio backup ready"}else{$("audioBackup").textContent="ℹ️ Server က video audio ကို တိုက်ရိုက်စမ်းပါမယ်"}
-   const r=await fetch("/api/process",{method:"POST",headers:{"x-gemini-api-key":k},body:fd}),j=await r.json();if(!r.ok)throw Error(j.error||"Upload failed");
+   const r=await fetch("/api/process",{method:"POST",headers:{"x-gemini-api-key":k,"x-gemini-model":geminiModel},body:fd}),j=await r.json();if(!r.ok)throw Error(j.error||"Upload failed");
    await pollOriginal(j.jobId);
  }catch(e){progress(0,"✕ Error",e.message);$("generateOriginal").disabled=false}
 };
