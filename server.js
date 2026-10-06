@@ -57,37 +57,50 @@ async function probeAudioStream(input){
   }
 }
 
-async function extractAudio(input,audio){
+async function extractAudio(input,audio,browserAudio){
   try{if(fs.existsSync(audio))fs.unlinkSync(audio)}catch{}
 
-  const stream=await probeAudioStream(input);
-  if(!stream){
-    throw new Error("Upload လုပ်ထားတဲ့ Video ထဲမှာ Server က ဖတ်နိုင်တဲ့ Audio Track မတွေ့ပါ။ Browser Preview မှာ အသံကြားရင်လည်း မူရင်း MP4/MOV ဖိုင်ကို ပြန်ရွေးတင်ပါ။");
-  }
-
-  const args=[
-    "-y","-nostdin","-hide_banner","-loglevel","error",
-    "-i",input,
-    "-map","0:a:0",
-    "-vn",
-    "-ac","1",
-    "-ar","16000",
-    "-c:a","pcm_s16le",
-    "-f","wav",
-    audio
-  ];
-
+  // First try extracting directly from the original video.
   try{
-    await run(ffmpeg,args);
+    await run(ffmpeg,[
+      "-y","-nostdin","-hide_banner","-loglevel","error",
+      "-i",input,
+      "-map","0:a:0",
+      "-vn",
+      "-ac","1",
+      "-ar","16000",
+      "-c:a","pcm_s16le",
+      "-f","wav",
+      audio
+    ]);
+    if(fs.existsSync(audio)&&fs.statSync(audio).size>=2048) return "ffmpeg";
   }catch(e){
-    const msg=String(e.message||e);
-    throw new Error("Audio Track တွေ့ပြီးသားဖြစ်ပေမယ့် WAV Extract မအောင်မြင်ပါ။\n"+msg.split("\n").slice(-8).join("\n"));
+    // Some phone/browser uploads can play audio in Chrome while the server-side
+    // container probe cannot expose an audio stream. Fall back to browser audio.
   }
 
-  if(!fs.existsSync(audio)||fs.statSync(audio).size<2048){
-    throw new Error("Audio Track ရှိပေမယ့် audio.wav ဖိုင် မထွက်လာပါ။");
+  // Browser fallback: the client sends a real audio track captured/decoded
+  // from the uploaded video.
+  if(browserAudio && fs.existsSync(browserAudio)){
+    try{
+      await run(ffmpeg,[
+        "-y","-nostdin","-hide_banner","-loglevel","error",
+        "-i",browserAudio,
+        "-vn",
+        "-ac","1",
+        "-ar","16000",
+        "-c:a","pcm_s16le",
+        "-f","wav",
+        audio
+      ]);
+      if(fs.existsSync(audio)&&fs.statSync(audio).size>=2048) return "browser";
+    }catch(e){
+      const msg=String(e.message||e);
+      throw new Error("Video Audio ကို Server က တိုက်ရိုက်မဖတ်နိုင်လို့ Browser Audio Backup ကို သုံးရာမှာလည်း မအောင်မြင်ပါ။\n"+msg.split("\n").slice(-8).join("\n"));
+    }
   }
-  return true;
+
+  throw new Error("Upload လုပ်ထားတဲ့ Video ရဲ့ Audio ကို Server က မဖတ်နိုင်ပါ။ CREATE RECAP နှိပ်တဲ့အခါ Browser Audio Backup ကို အရင်ပြင်ဆင်ပေးထားပါတယ် — မရသေးရင် Chrome မှာ Video ကို တစ်ခါ Play လုပ်ပြီး ပြန်စမ်းပါ။");
 }
 
 async function processJob(id,input,opts){
@@ -96,7 +109,8 @@ async function processJob(id,input,opts){
   const audio=path.join(dir,"audio.wav"),voice=path.join(dir,"voice.mp3");
   try{
     failedStage="audio"; job(id,{status:"processing",stage:"audio",progress:12,error:null});
-    await extractAudio(input,audio);
+    const audioSource=await extractAudio(input,audio,opts.browserAudio);
+    job(id,{stage:"audio",progress:20,audioSource});
 
     failedStage="transcription"; job(id,{stage:"transcription",progress:30});
     const key=opts.key;
@@ -129,17 +143,25 @@ async function processJob(id,input,opts){
     job(id,{status:"complete",stage:"complete",progress:100,error:null,files:{video:"/api/download/"+id+"/final.mp4",originalSrt:"/api/download/"+id+"/original.srt",burmeseSrt:"/api/download/"+id+"/burmese.srt",recap:"/api/download/"+id+"/recap.txt"}});
   }catch(e){
     job(id,{status:"error",stage:"error",failedStage,progress:0,error:String(e.message||e)});
-  }finally{try{fs.unlinkSync(input)}catch{}}
+  }finally{
+    try{fs.unlinkSync(input)}catch{}
+    try{if(opts.browserAudio&&fs.existsSync(opts.browserAudio))fs.unlinkSync(opts.browserAudio)}catch{}
+  }
 }
 app.get("/api/health",(req,res)=>res.json({ok:true,app:"Lynn Movie Recap",version:"2.0.0"}));
-app.post("/api/process",upload.single("video"),async(req,res)=>{
-  if(!req.file)return res.status(400).json({error:"Video မရှိပါ"});
+app.post("/api/process",upload.fields([
+  {name:"video",maxCount:1},
+  {name:"browserAudio",maxCount:1}
+]),async(req,res)=>{
+  const video=req.files?.video?.[0];
+  const browserAudio=req.files?.browserAudio?.[0];
+  if(!video)return res.status(400).json({error:"Video မရှိပါ"});
   const key=getKey(req);if(!key)return res.status(400).json({error:"Gemini API Key ထည့်ပါ"});
   const id=crypto.randomUUID();
-  job(id,{status:"queued",stage:"queued",progress:3});
-  processJob(id,req.file.path,{key,ratio:req.body.ratio,crf:req.body.crf});
+  job(id,{status:"queued",stage:"queued",progress:3,audioBackup:!!browserAudio});
+  processJob(id,video.path,{key,ratio:req.body.ratio,crf:req.body.crf,browserAudio:browserAudio?.path||null});
   res.json({jobId:id});
 });
 app.get("/api/status/:id",(req,res)=>{const j=jobs.get(req.params.id);if(!j)return res.status(404).json({error:"Job not found"});res.json(j)});
 app.get("/api/download/:id/:file",(req,res)=>{const allowed=["final.mp4","original.srt","burmese.srt","recap.txt"];const file=path.basename(req.params.file);if(!allowed.includes(file))return res.status(400).send("Invalid file");const p=path.join(OUT,req.params.id,file);if(!fs.existsSync(p))return res.status(404).send("File not found");res.download(p,file)});
-app.listen(PORT,()=>console.log("Lynn Movie Recap 2.0 running on "+PORT));
+app.listen(PORT,()=>console.log("Lynn Movie Recap 2.1 running on "+PORT));
