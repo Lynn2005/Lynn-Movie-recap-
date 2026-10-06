@@ -56,7 +56,7 @@
             <div class="uploadIcon">⇧</div><strong>Drag &amp; drop your video here</strong><span>or</span><b>▣ &nbsp; Choose File</b><small>Supported formats: MP4, MKV, AVI, MOV, WEBM &nbsp; | &nbsp; Max size: 2GB</small>
           </label>
           <div id="fileInfo" class="fileInfo" hidden><span>🎬</span><div><b id="filename"></b><small id="filesize"></small></div><button id="remove">×</button></div>
-          <video id="preview" class="preview" controls hidden></video>
+          <video id="preview" class="preview" controls playsinline preload="metadata" hidden></video><div id="audioStatus" class="audioStatus" hidden>🔊 Original audio ready</div>
         </div>
 
         <div class="panel processing" id="progressPanel">
@@ -131,8 +131,41 @@ $("eye").onclick=()=>{$("key").type=$("key").type==="password"?"text":"password"
 $("test").onclick=async()=>{const k=$("key").value.trim();if(!k)return $("saved").textContent="Please enter your API Key";$("test").disabled=true;$("test").textContent="Testing...";try{const r=await fetch("/api/health");if(!r.ok)throw Error("Server unavailable");$("saved").textContent="✓ Server connection OK";}catch(e){$("saved").textContent="✕ "+e.message;}finally{$("test").disabled=false;$("test").textContent="♧  Test Connection";}};
 
 $("video").onchange=()=>setFile($("video").files[0]);
-function setFile(f){if(!f)return;$("filename").textContent=f.name;$("filesize").textContent=(f.size/1024/1024).toFixed(1)+" MB";$("fileInfo").hidden=false;$("preview").src=URL.createObjectURL(f);$("preview").hidden=false;}
-$("remove").onclick=()=>{$("video").value="";$("fileInfo").hidden=true;$("preview").hidden=true;$("preview").removeAttribute("src");};
+function setFile(f){
+  if(!f)return;
+  $("filename").textContent=f.name;
+  $("filesize").textContent=(f.size/1024/1024).toFixed(1)+" MB";
+  $("fileInfo").hidden=false;
+  const p=$("preview");
+  p.pause();
+  p.removeAttribute("src");
+  p.load();
+  p.muted=false;
+  p.defaultMuted=false;
+  p.volume=1;
+  p.src=URL.createObjectURL(f);
+  p.hidden=false;
+  $("audioStatus").hidden=false;
+  $("audioStatus").textContent="🔎 Checking original audio...";
+  p.onloadedmetadata=()=>{
+    p.muted=false;
+    p.volume=1;
+    const hasAudio=(typeof p.mozHasAudio==="boolean"&&p.mozHasAudio)||
+      (typeof p.webkitAudioDecodedByteCount==="number"&&p.webkitAudioDecodedByteCount>0);
+    $("audioStatus").textContent=hasAudio?"🔊 Original audio detected":"🔊 Audio control ready — tap the speaker if needed";
+    $("audioStatus").classList.toggle("warn",!hasAudio);
+  };
+  p.load();
+}
+$("remove").onclick=()=>{
+  $("video").value="";
+  $("fileInfo").hidden=true;
+  $("preview").pause();
+  $("preview").hidden=true;
+  $("preview").removeAttribute("src");
+  $("preview").load();
+  $("audioStatus").hidden=true;
+};
 ["dragenter","dragover"].forEach(e=>$("dropzone").addEventListener(e,x=>{x.preventDefault();$("dropzone").classList.add("drag");}));
 ["dragleave","drop"].forEach(e=>$("dropzone").addEventListener(e,x=>{x.preventDefault();$("dropzone").classList.remove("drag");}));
 $("dropzone").addEventListener("drop",e=>{const f=e.dataTransfer.files[0];if(f){const dt=new DataTransfer();dt.items.add(f);$("video").files=dt.files;setFile(f);}});
