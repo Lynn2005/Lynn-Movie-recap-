@@ -19,8 +19,8 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
 function key(req){return req.headers["x-gemini-api-key"]||ENV.GEMINI_API_KEY}
 function clean(s){return String(s||"").replace(/^\s*\`\`\`(?:srt|text)?/i,"").replace(/\`\`\`\s*$/,"").trim()}
 function parseSrt(s){return s.split(/\n\s*\n/).map(b=>{let a=b.split(/\r?\n/),i=a.findIndex(x=>x.includes("-->"));return i<0?null:a.slice(i+1).join(" ").trim()}).filter(Boolean)}
-async function geminiAudio(audio,k){
- const models=[ENV.GEMINI_MODEL||"gemini-3.8-flash","gemini-3.7-flash","gemini-3.5-flash-lite"];
+async function geminiAudio(audio,k,requested){
+ const models=[requested,ENV.GEMINI_MODEL,"gemini-3.8-flash","gemini-3.7-flash","gemini-3.5-flash-lite"].filter(Boolean);
  let last;
  for(const name of [...new Set(models)]){
   const m=new GoogleGenerativeAI(k).getGenerativeModel({model:name});
@@ -30,14 +30,14 @@ async function geminiAudio(audio,k){
  }
  throw last||new Error("Gemini free model မရပါ။")
 }
-async function process(id,input,k){
+async function process(id,input,k,requested){
  const dir=path.join(OUT,id);fs.mkdirSync(dir,{recursive:true});const audio=path.join(dir,"audio.wav");
  try{
   setJob(id,{status:"processing",stage:"audio",progress:15,message:"Audio ထုတ်နေပါတယ်..."});
   await run(ffmpeg,["-y","-nostdin","-hide_banner","-loglevel","error","-i",input,"-map","0:a:0","-vn","-ac","1","-ar","16000","-c:a","pcm_s16le","-f","wav",audio]);
   if(!fs.existsSync(audio)||fs.statSync(audio).size<2048)throw Error("Video ထဲမှာ Audio မတွေ့ပါ။");
   setJob(id,{stage:"srt",progress:55,message:"Original SRT ဖန်တီးနေပါတယ်..."});
-  const s=clean(await geminiAudio(audio,k));if(!s)throw Error("Original SRT မထွက်လာပါ။");
+  const s=clean(await geminiAudio(audio,k,requested));if(!s)throw Error("Original SRT မထွက်လာပါ။");
   fs.writeFileSync(path.join(dir,"original.srt"),s);
   setJob(id,{status:"complete",stage:"original_ready",progress:100,message:"Original SRT အဆင်သင့်ပါပြီ",files:{originalSrt:"/api/download/"+id+"/original.srt"}});
  }catch(e){setJob(id,{status:"error",stage:"error",progress:0,error:e.message||String(e)})}
@@ -52,10 +52,10 @@ async function voiceJob(id,srt){
   setJob(id,{status:"complete",stage:"voice_ready",progress:100,message:"AI Voice အဆင်သင့်ပါပြီ",files:{voice:"/api/download/"+id+"/voice.mp3",burmeseSrt:"/api/download/"+id+"/burmese.srt"}});
  }catch(e){setJob(id,{status:"error",stage:"error",progress:0,error:e.message||String(e)})}
 }
-app.get("/api/health",(q,r)=>r.json({ok:true,version:"4.1.0",freeAI:true,models:["gemini-3.8-flash","gemini-3.7-flash","gemini-3.5-flash-lite"],tts:"edge-tts"}));
-app.post("/api/process",(req,res,next)=>{upload.single("video")(req,res,e=>{if(e)return next(e);const f=req.file;if(!f)return res.status(400).json({error:"Video ရွေးပါ"});const k=key(req);if(!k){try{fs.unlinkSync(f.path)}catch{};return res.status(400).json({error:"Gemini API Key ထည့်ပါ"})}const id=crypto.randomUUID();setJob(id,{status:"queued",stage:"upload",progress:5});process(id,f.path,k);res.json({jobId:id})})});
+app.get("/api/health",(q,r)=>r.json({ok:true,version:"5.0.0",freeAI:true,models:["gemini-3.8-flash","gemini-3.7-flash","gemini-3.5-flash-lite"],tts:"edge-tts"}));
+app.post("/api/process",(req,res,next)=>{upload.single("video")(req,res,e=>{if(e)return next(e);const f=req.file;if(!f)return res.status(400).json({error:"Video ရွေးပါ"});const k=key(req),requested=req.headers["x-gemini-model"];if(!k){try{fs.unlinkSync(f.path)}catch{};return res.status(400).json({error:"Gemini API Key ထည့်ပါ"})}const id=crypto.randomUUID();setJob(id,{status:"queued",stage:"upload",progress:5});process(id,f.path,k,requested);res.json({jobId:id})})});
 app.post("/api/voice",(req,res,next)=>{upload.single("burmeseSrt")(req,res,e=>{if(e)return next(e);let s=req.file?fs.readFileSync(req.file.path,"utf8"):String(req.body.burmeseSrtText||"");if(req.file)try{fs.unlinkSync(req.file.path)}catch{};if(!s.trim())return res.status(400).json({error:"Burmese SRT တင်ပါ"});const id=crypto.randomUUID();setJob(id,{status:"queued",stage:"voice",progress:5});voiceJob(id,s);res.json({jobId:id})})});
 app.get("/api/status/:id",(req,res)=>{const j=jobs.get(req.params.id);j?res.json(j):res.status(404).json({error:"Job not found"})});
 app.get("/api/download/:id/:file",(req,res)=>{const f=path.basename(req.params.file),ok=["original.srt","burmese.srt","voice.mp3"].includes(f);if(!ok)return res.status(400).send("Invalid file");const p=path.join(OUT,req.params.id,f);fs.existsSync(p)?res.download(p,f):res.status(404).send("File not found")});
 app.use((e,req,res,next)=>{if(e instanceof multer.MulterError)return res.status(e.code==="LIMIT_FILE_SIZE"?413:400).json({error:e.code==="LIMIT_FILE_SIZE"?"Video 500MB ထက် မကျော်ရပါ။":"Upload error: "+e.message});res.status(500).json({error:e.message||"Server error"})});
-app.listen(PORT,()=>console.log("Lynn Recap 4.0 on "+PORT));
+app.listen(PORT,()=>console.log("Lynn Recap 5.0 on "+PORT));
