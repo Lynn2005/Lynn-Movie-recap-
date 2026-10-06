@@ -6,20 +6,21 @@ const crypto=require("crypto");
 const {GoogleGenerativeAI}=require("@google/generative-ai");
 const ffmpeg=require("ffmpeg-static");
 const {execFile}=require("child_process");
-const app=express(),PORT=process.env.PORT||10000;
+const ENV=(globalThis.process&&globalThis.process.env)?globalThis.process.env:{};
+const app=express(),PORT=ENV.PORT||10000;
 const ROOT=__dirname,UPLOAD=path.join(ROOT,"uploads"),OUT=path.join(ROOT,"outputs");
 fs.mkdirSync(UPLOAD,{recursive:true});fs.mkdirSync(OUT,{recursive:true});
-const upload=multer({dest:UPLOAD,limits:{fileSize:(Number(process.env.MAX_FILE_MB)||500)*1024*1024}});
+const upload=multer({dest:UPLOAD,limits:{fileSize:(Number(ENV.MAX_FILE_MB)||500)*1024*1024}});
 app.use(express.json({limit:"5mb"}));app.use(express.static(path.join(ROOT,"public")));
 const jobs=new Map();
 const run=(bin,args)=>new Promise((ok,no)=>execFile(bin,args,{maxBuffer:30*1024*1024},(e,o,s)=>e?no(new Error(s||e.message)):ok(o)));
 const setJob=(id,x)=>jobs.set(id,{...(jobs.get(id)||{}),...x,updatedAt:Date.now()});
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
-function key(req){return req.headers["x-gemini-api-key"]||process.env.GEMINI_API_KEY}
+function key(req){return req.headers["x-gemini-api-key"]||ENV.GEMINI_API_KEY}
 function clean(s){return String(s||"").replace(/^\s*\`\`\`(?:srt|text)?/i,"").replace(/\`\`\`\s*$/,"").trim()}
 function parseSrt(s){return s.split(/\n\s*\n/).map(b=>{let a=b.split(/\r?\n/),i=a.findIndex(x=>x.includes("-->"));return i<0?null:a.slice(i+1).join(" ").trim()}).filter(Boolean)}
 async function geminiAudio(audio,k){
- const models=[process.env.GEMINI_MODEL||"gemini-3.8-flash","gemini-3.7-flash","gemini-3.5-flash-lite"];
+ const models=[ENV.GEMINI_MODEL||"gemini-3.8-flash","gemini-3.7-flash","gemini-3.5-flash-lite"];
  let last;
  for(const name of [...new Set(models)]){
   const m=new GoogleGenerativeAI(k).getGenerativeModel({model:name});
@@ -46,7 +47,7 @@ async function voiceJob(id,srt){
  const dir=path.join(OUT,id),mp3=path.join(dir,"voice.mp3");fs.mkdirSync(dir,{recursive:true});
  try{setJob(id,{status:"processing",stage:"voice",progress:30,message:"Burmese AI Voice ထုတ်နေပါတယ်..."});
   const text=parseSrt(srt).join(" ");if(!text)throw Error("Burmese SRT စာသားမတွေ့ပါ။");
-  const {ttsSave}=require("edge-tts");await ttsSave(text,mp3,{voice:process.env.TTS_VOICE||"my-MM-ThihaNeural",rate:"-5%",volume:"+0%",pitch:"+0Hz"});
+  const {ttsSave}=require("edge-tts");await ttsSave(text,mp3,{voice:ENV.TTS_VOICE||"my-MM-ThihaNeural",rate:"-5%",volume:"+0%",pitch:"+0Hz"});
   fs.writeFileSync(path.join(dir,"burmese.srt"),srt);
   setJob(id,{status:"complete",stage:"voice_ready",progress:100,message:"AI Voice အဆင်သင့်ပါပြီ",files:{voice:"/api/download/"+id+"/voice.mp3",burmeseSrt:"/api/download/"+id+"/burmese.srt"}});
  }catch(e){setJob(id,{status:"error",stage:"error",progress:0,error:e.message||String(e)})}
