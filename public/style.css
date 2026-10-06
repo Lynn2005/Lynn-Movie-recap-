@@ -91,3 +91,6 @@ html.touchPhone .step{min-width:65px}
 html.touchPhone .steps:before{display:none}
 html.touchPhone #upload{scroll-margin-top:6px}
 html.touchPhone .uploadPanel{width:100%}
+
+
+.playSound{width:100%;margin-top:8px;border:1px solid rgba(70,150,255,.35);border-radius:10px;padding:10px 12px;background:linear-gradient(90deg,rgba(38,111,255,.22),rgba(110,72,255,.22));color:#dceaff;font-weight:800;font-size:12px;cursor:pointer}.playSound:active{transform:scale(.99)}
