@@ -3,378 +3,199 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<script>document.documentElement.classList.toggle("touchPhone", navigator.maxTouchPoints > 0 || "ontouchstart" in window);</script>
+<script>document.documentElement.classList.toggle("touchPhone",navigator.maxTouchPoints>0||"ontouchstart" in window);</script>
 <meta name="theme-color" content="#07152b">
-<title>Lynn Recap — AI Movie Recap</title>
+<title>Lynn Recap — SRT + AI Voice</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div class="app">
-  <aside class="sidebar">
-    <div class="logo"><div class="logoMark">▶</div><div><b>Lynn Recap</b><small>Turn Videos into Stories</small></div></div>
-    <nav>
-      <button class="nav active" data-section="home"><span>⌂</span>Home</button>
-      <button class="nav" data-section="upload"><span>⇧</span>Upload Video</button>
-      <button class="nav" data-section="recaps"><span>◷</span>My Recaps</button>
-      <button class="nav" data-section="settings"><span>⚙</span>Settings</button>
-    </nav>
-    <div class="sideBottom"><i></i>Ready</div>
-  </aside>
+  <header class="topbar">
+    <div class="brand"><span class="brandIcon">▶</span><div><b>Lynn Recap</b><small>Movie Recap • SRT • AI Voice</small></div></div>
+    <div class="topKey"><span>🔑</span><b id="keyDots">Not saved</b><button id="topEdit">✎</button></div>
+  </header>
 
-  <main class="main">
-    <header class="topbar">
-      <div class="mobileBrand"><div class="logoMark">▶</div><b>Lynn Recap</b></div>
-      <div class="topActions">
-        <div class="miniKey"><span>⚿</span><label>Gemini API Key<em id="keyDots">••••••••••••••</em></label><button id="topEdit">✎</button></div>
-        <button class="iconBtn" id="themeBtn">☼</button>
-        <button class="avatar">●</button>
-      </div>
-    </header>
-
-    <section class="hero" id="home">
-      <div class="heroArt">
-        <div class="heroGlow"></div>
-        <div class="heroCopy">
-          <div class="heroLogo">▶</div>
-          <div>
-            <h1>Lynn Recap</h1>
-            <h2>AI-Powered Video Recap Generator</h2>
-            <p>မူရင်းဗီဒီယိုကို မြန်မာ Recap အဖြစ် ပြောင်းပေးပါ</p>
-          </div>
-        </div>
-        <div class="featureRow">
-          <span>◉ <b>Auto Extract Audio</b></span><span>▤ <b>Generate Subtitles</b></span><span>✎ <b>AI Recap Script</b></span><span>♩ <b>Text to Speech</b></span>
-        </div>
-      </div>
+  <main>
+    <section class="hero">
+      <div class="heroIcon">▶</div>
+      <div><h1>Lynn Recap</h1><h2>Original SRT → Burmese SRT → AI Voice</h2>
+      <p>ဗီဒီယိုကနေ မူရင်း SRT ထုတ်ပါ။ Gemini မှာ ကိုယ်တိုင် မြန်မာလို ဘာသာပြန်ပြီး SRT ပြန်တင်ပါ။ ပြီးရင် မြန်မာ AI Voice ထုတ်ပေးပါမယ်။</p></div>
     </section>
 
-    <section class="workspace" id="upload">
-      <div class="leftCol">
-        <div class="panel uploadPanel">
-          <div class="panelHead"><div class="roundIcon">⇧</div><div><h3>1. Upload Video</h3><p>Choose a video file or drag and drop here</p></div></div>
+    <section class="workflow">
+      <div class="flow active"><i>1</i><b>Video</b><small>Upload</small></div>
+      <div class="line"></div>
+      <div class="flow"><i>2</i><b>Original SRT</b><small>Generate</small></div>
+      <div class="line"></div>
+      <div class="flow"><i>3</i><b>Burmese SRT</b><small>Translate & Upload</small></div>
+      <div class="line"></div>
+      <div class="flow"><i>4</i><b>AI Voice</b><small>Generate</small></div>
+    </section>
+
+    <section class="grid">
+      <div class="left">
+        <div class="card" id="videoCard">
+          <div class="cardTitle"><span class="num">1</span><div><h3>Video Upload</h3><p>ဗီဒီယိုတင်ပြီး Original SRT ထုတ်ပါ</p></div></div>
           <label class="dropzone" id="dropzone">
-            <input id="video" type="file" accept="video/mp4,video/x-matroska,video/quicktime,video/webm,video/*">
-            <div class="uploadIcon">⇧</div><strong>Drag &amp; drop your video here</strong><span>or</span><b>▣ &nbsp; Choose File</b><small>Supported formats: MP4, MKV, AVI, MOV, WEBM &nbsp; | &nbsp; Max size: 2GB</small>
+            <input id="video" type="file" accept="video/*">
+            <div class="bigUpload">⇧</div>
+            <b>ဗီဒီယိုဖိုင်ရွေးပါ</b><span>သို့မဟုတ် Drag & Drop</span>
+            <small>MP4 • MKV • MOV • WEBM • Max 500MB</small>
           </label>
           <div id="fileInfo" class="fileInfo" hidden><span>🎬</span><div><b id="filename"></b><small id="filesize"></small></div><button id="remove">×</button></div>
-          <video id="preview" class="preview" controls playsinline preload="metadata" hidden></video>
-          <button id="playSound" class="playSound" type="button" hidden>🔊 အသံဖွင့်ပါ</button>
-          <div id="audioStatus" class="audioStatus" hidden>🔊 Original audio ready</div>
-          <div id="audioBackup" class="audioBackup" hidden>⏳ Audio backup preparing...</div>
+          <video id="preview" controls playsinline preload="metadata" hidden></video>
+          <button id="playSound" class="secondary" hidden>🔊 Video အသံဖွင့်ပါ</button>
+          <div id="audioBackup" class="notice" hidden></div>
+          <button id="generateOriginal" class="primary" disabled>📝 Original SRT ထုတ်မယ် →</button>
         </div>
 
-        <div class="panel processing" id="progressPanel">
-          <div class="panelHead progressHead"><div class="spinner" id="spinner"></div><div><h3>Processing Your Video</h3><p id="status">Ready to start</p></div><strong id="stepLabel">Step 0 of 7</strong></div>
-          <div class="steps">
-            <div class="step" data-stage="upload"><i>✓</i><span>Upload</span></div>
-            <div class="step" data-stage="audio"><i>2</i><span>Extract<br>Audio</span></div>
-            <div class="step" data-stage="transcription"><i>3</i><span>Generate SRT<br>(Original)</span></div>
-            <div class="step" data-stage="translation"><i>4</i><span>Translate SRT<br>(Burmese)</span></div>
-            <div class="step" data-stage="recap"><i>5</i><span>Generate Script</span></div>
-            <div class="step" data-stage="voice"><i>6</i><span>AI Voice</span></div>
-            <div class="step" data-stage="render"><i>7</i><span>Render Video</span></div>
+        <div class="card">
+          <div class="cardTitle"><span class="num">2</span><div><h3>Original SRT</h3><p>AI က မူရင်းဘာသာစကား subtitle ထုတ်ပေးမယ်</p></div></div>
+          <div id="originalState" class="empty">Video ရွေးပြီး <b>Original SRT ထုတ်မယ်</b> ကိုနှိပ်ပါ။</div>
+          <div id="originalActions" hidden>
+            <div class="successBox">✓ Original SRT အဆင်သင့်ဖြစ်ပါပြီ</div>
+            <a id="originalDownload" class="download" download>⬇ Original SRT Download</a>
+            <div class="tip">📌 ဒီ SRT ကို Download/Copy လုပ်ပြီး Gemini မှာ မြန်မာလို ဘာသာပြန်ပါ။ ပြီးရင် .srt ဖိုင်အဖြစ် ပြန်သိမ်းပါ။</div>
           </div>
-          <div class="progressLine"><i id="bar"></i></div>
-          <div class="progressMeta"><span id="progressText">Waiting for video...</span><b id="percent">0%</b></div>
-          <button id="go" class="createBtn">CREATE RECAP &nbsp; →</button>
         </div>
 
-        <div id="result" class="panel resultPanel" hidden>
-          <div class="resultTop"><div class="success">✓</div><div><h3>Processing Complete!</h3><p>Your recap video and files are ready.</p></div><button class="more">•••</button></div>
-          <div class="resultBody"><div class="thumb"><video id="resultPreview" controls></video></div><div class="resultInfo"><h4 id="resultTitle">Your Movie Recap</h4><p>Final recap video generated successfully.</p><div class="downloadGrid"><a id="videoLink" class="primary">⇩ Download Video</a><a id="origLink">▤ Original SRT</a><a id="myLink">文 Burmese SRT</a><a id="recapLink">▤ Recap Script</a></div></div></div>
+        <div class="card">
+          <div class="cardTitle"><span class="num">3</span><div><h3>Burmese SRT တင်ပါ</h3><p>Gemini မှာ ဘာသာပြန်ပြီးရတဲ့ .srt ကို ဒီမှာတင်ပါ</p></div></div>
+          <label class="srtDrop">
+            <input id="burmeseSrtFile" type="file" accept=".srt,text/plain">
+            <span>📄</span><b>Burmese .SRT ရွေးပါ</b><small id="srtName">No file selected</small>
+          </label>
+          <div class="or"><span>OR</span></div>
+          <textarea id="srtText" placeholder="Burmese SRT ကို ဒီမှာ paste လုပ်လည်းရပါတယ်...&#10;&#10;1&#10;00:00:01,000 --> 00:00:03,000&#10;ဒီနေ့တော့..."></textarea>
+          <button id="generateVoice" class="primary" disabled>🔊 Burmese AI Voice ထုတ်မယ် →</button>
+        </div>
+
+        <div class="card" id="voiceResult" hidden>
+          <div class="cardTitle"><span class="num done">✓</span><div><h3>AI Voice အဆင်သင့်ပါပြီ</h3><p>Burmese voice ကို နားထောင်ပြီး Download လုပ်နိုင်ပါတယ်</p></div></div>
+          <audio id="voicePlayer" controls></audio>
+          <div class="downloadRow"><a id="voiceDownload" class="download" download>⬇ AI Voice MP3</a><a id="burmeseDownload" class="download" download>⬇ Burmese SRT</a></div>
         </div>
       </div>
 
-      <aside class="rightCol">
-        <div class="panel quick">
-          <div class="quickTitle">⚙ <h3>Quick Settings</h3></div>
-          <label>Gemini API Key</label>
-          <div class="keyInput"><input id="key" type="password" placeholder="AIza..."><button id="eye">◉</button></div>
-          <div class="keyButtons"><button id="save" class="save">♧ &nbsp; Save Key</button><button id="test">♧ &nbsp; Test Connection</button></div>
+      <aside class="right">
+        <div class="card settings">
+          <div class="cardTitle"><span class="gear">⚙</span><div><h3>Gemini API Key</h3><p>Key ကို ဒီဖုန်း browser ထဲမှာပဲ သိမ်းထားပါတယ်</p></div></div>
+          <div class="keyRow"><input id="key" type="password" placeholder="AIza..."><button id="eye">◉</button></div>
+          <div class="buttonRow"><button id="save" class="save">💾 Save Key</button><button id="test" class="secondary">Test</button></div>
           <div id="saved" class="saved"></div>
-          <div class="setting"><label>AI Voice</label><div class="selectFake">🇲🇲 &nbsp; Myanmar (Female) <span>⌄</span></div></div>
-          <div class="setting"><label>Recap Style</label><select id="style"><option>Short &amp; Engaging</option><option>Detailed Storytelling</option><option>Casual Burmese</option></select></div>
-          <div class="setting"><label>Video Format</label><select id="ratio"><option value="9:16">9:16 — Shorts / TikTok</option><option value="16:9">16:9 — YouTube</option><option value="1:1">1:1 — Square</option></select></div>
-          <div class="setting"><label>Render Quality</label><select id="crf"><option value="24">High Quality</option><option value="28" selected>Balanced</option><option value="31">Fast</option></select></div>
         </div>
-
-        <div class="panel recent" id="recaps">
-          <div class="recentHead"><h3>◷ &nbsp; Recent Projects</h3><button>View All</button></div>
-          <div class="emptyRecent">Your completed recaps will appear here.</div>
+        <div class="card statusCard">
+          <div class="statusTop"><span class="spinner" id="spinner"></span><div><b id="statusTitle">Ready</b><small id="status">Video ရွေးပြီး စတင်ပါ</small></div><strong id="percent">0%</strong></div>
+          <div class="progress"><i id="bar"></i></div>
+          <div id="progressText">Waiting...</div>
+        </div>
+        <div class="card help">
+          <h3>📌 အသုံးပြုပုံ</h3>
+          <ol>
+            <li>Video တင်ပါ</li>
+            <li>Original SRT ထုတ်ပြီး Download/Copy လုပ်ပါ</li>
+            <li>Gemini မှာ Burmese SRT ဘာသာပြန်ပါ</li>
+            <li>Burmese SRT ကို Upload/Paste လုပ်ပါ</li>
+            <li>AI Voice ထုတ်ပြီး MP3 Download လုပ်ပါ</li>
+          </ol>
         </div>
       </aside>
     </section>
-
-    <section class="features" id="settings">
-      <div class="sectionTitle"><span>☆</span><div><h2>All Features</h2><p>Everything you need for a complete video recap workflow</p></div></div>
-      <div class="featureGrid">
-        <div><i>⇧</i><b>Video Upload</b><small>Upload your video file</small></div>
-        <div><i>◉</i><b>Audio Extraction</b><small>Extract audio using FFmpeg</small></div>
-        <div><i>▤</i><b>Original Subtitle (.srt)</b><small>Generate original subtitles with timestamps</small></div>
-        <div><i>文</i><b>Burmese Subtitle (.srt)</b><small>Translate to Burmese subtitle</small></div>
-        <div><i>✎</i><b>Burmese Recap Script</b><small>Generate engaging recap script</small></div>
-        <div><i>♩</i><b>AI Voice</b><small>Convert script to natural Burmese voice</small></div>
-        <div><i>⚙</i><b>FFmpeg Processing</b><small>Professional video/audio processing</small></div>
-        <div><i>▶</i><b>Render Video</b><small>Combine everything into final video</small></div>
-      </div>
-    </section>
-    <footer><b>▶ Lynn Recap</b><span>Mobile Friendly</span><span>FFmpeg</span><span>Gemini AI</span><span>Docker Ready</span><span>Render.com</span><em>Small videos... Big stories. ♡</em></footer>
   </main>
+  <footer>▶ Lynn Recap <span>Mobile Friendly</span><span>FFmpeg</span><span>Gemini AI</span><span>Myanmar AI Voice</span></footer>
 </div>
 
 <script>
 const $=id=>document.getElementById(id);
 let saved=localStorage.getItem("lynn_gemini_key")||"";
 $("key").value=saved;
-function showSaved(){ $("saved").textContent=saved?"✓ API Key Saved":""; $("keyDots").textContent=saved?"••••••••••••••":"Not saved"; }
+function showSaved(){ $("saved").textContent=saved?"✓ API Key Saved":" "; $("keyDots").textContent=saved?"••••••••••••":"Not saved"; }
 showSaved();
 
-$("save").onclick=()=>{const k=$("key").value.trim();if(!k)return $("saved").textContent="Please enter your Gemini API Key";localStorage.setItem("lynn_gemini_key",k);saved=k;showSaved();};
+$("save").onclick=()=>{const k=$("key").value.trim();if(!k){$("saved").textContent="API Key ထည့်ပါ";return}localStorage.setItem("lynn_gemini_key",k);saved=k;showSaved();};
 $("topEdit").onclick=()=>{$("key").focus();$("key").scrollIntoView({behavior:"smooth",block:"center"});};
 $("eye").onclick=()=>{$("key").type=$("key").type==="password"?"text":"password";};
-$("test").onclick=async()=>{const k=$("key").value.trim();if(!k)return $("saved").textContent="Please enter your API Key";$("test").disabled=true;$("test").textContent="Testing...";try{const r=await fetch("/api/health");if(!r.ok)throw Error("Server unavailable");$("saved").textContent="✓ Server connection OK";}catch(e){$("saved").textContent="✕ "+e.message;}finally{$("test").disabled=false;$("test").textContent="♧  Test Connection";}};
-
-$("video").onchange=()=>setFile($("video").files[0]);
-
-function goToUpload(lock=false){
-  const section=$("upload");
-  const panel=section?.querySelector(".uploadPanel");
-  if(!section||!panel)return;
-
-  // Anchor to the actual Upload Video card, not the whole workspace.
-  const getTop=()=>Math.max(0,window.scrollY+panel.getBoundingClientRect().top-8);
-  const move=()=>{
-    const top=getTop();
-    window.scrollTo(0,top);
-  };
-
-  section.classList.add("uploadFocus");
-  if(lock){
-    // Android Chrome can restore the file-picker position after onchange.
-    // Blur the hidden file input and repeatedly restore the exact Upload card
-    // position while the video preview is being inserted/laid out.
-    document.activeElement?.blur();
-    move();
-    [40,100,200,350,600,900,1300,1800].forEach(ms=>setTimeout(move,ms));
-  }else{
-    window.scrollTo({top:getTop(),behavior:"smooth"});
-  }
-
-  setTimeout(()=>section.classList.remove("uploadFocus"),1900);
-  document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));
-  document.querySelector('.nav[data-section="upload"]')?.classList.add("active");
-}
-
-
+$("test").onclick=async()=>{const b=$("test");b.disabled=true;b.textContent="...";try{const r=await fetch("/api/health");const j=await r.json();$("saved").textContent=r.ok?"✓ Server OK • v"+j.version:"✕ Server error";}catch(e){$("saved").textContent="✕ Server unavailable"}finally{b.disabled=false;b.textContent="Test"}};
 
 let selectedFile=null;
-
+$("video").onchange=()=>setFile($("video").files[0]);
 function setFile(f){
-  if(!f)return;
-  selectedFile=f;
-  $("filename").textContent=f.name;
-  $("filesize").textContent=(f.size/1024/1024).toFixed(1)+" MB";
-  $("fileInfo").hidden=false;
-  const p=$("preview");
-  p.pause();
-  p.removeAttribute("src");
-  p.load();
-  p.muted=false;
-  p.defaultMuted=false;
-  p.volume=1;
-  p.src=URL.createObjectURL(f);
-  p.hidden=false;
-  $("audioStatus").hidden=false;
-  $("audioBackup").hidden=true;
-  $("audioStatus").textContent="🔎 Checking original audio...";
-  p.onloadedmetadata=()=>{
-    p.muted=false;
-    p.defaultMuted=false;
-    p.volume=1;
-    const hasAudio=(typeof p.mozHasAudio==="boolean"&&p.mozHasAudio)||
-      (typeof p.webkitAudioDecodedByteCount==="number"&&p.webkitAudioDecodedByteCount>0);
-    $("audioStatus").textContent=hasAudio?"🔊 Original audio ready — Play နှိပ်ပြီး အသံနားထောင်နိုင်ပါတယ်":"🔊 Browser audio backup will be used when possible";
-    $("audioStatus").classList.toggle("warn",!hasAudio);
-    $("playSound").hidden=false;
-  };
-  p.onplay=()=>{p.muted=false;p.defaultMuted=false;p.volume=1;$("playSound").textContent="🔊 အသံဖွင့်ထားသည်";};
-  p.onpause=()=>{$("playSound").textContent="🔊 အသံဖွင့်ပါ";};
-  p.load();
-
-  // After choosing a video, keep the user locked to the Upload Video card.
-  // Do this after the preview is shown so the new preview height cannot push
-  // the page down to the Processing panel.
-  requestAnimationFrame(()=>goToUpload(true));
-  setTimeout(()=>goToUpload(true),1200);
+ if(!f)return; selectedFile=f; $("filename").textContent=f.name; $("filesize").textContent=(f.size/1024/1024).toFixed(1)+" MB"; $("fileInfo").hidden=false;
+ const p=$("preview"); p.src=URL.createObjectURL(f); p.hidden=false; $("playSound").hidden=false; $("generateOriginal").disabled=false;
+ p.onloadedmetadata=()=>{p.muted=false;p.volume=1};
+ $("videoCard").scrollIntoView({behavior:"smooth",block:"start"});
 }
+$("playSound").onclick=async()=>{const p=$("preview");p.muted=false;p.volume=1;try{await p.play()}catch(e){alert("ဖုန်း Media Volume ကိုဖွင့်ပြီး Video Play ကိုနှိပ်ပါ။")}};
+$("remove").onclick=()=>{selectedFile=null;$("video").value="";$("fileInfo").hidden=true;$("preview").hidden=true;$("preview").removeAttribute("src");$("generateOriginal").disabled=true;$("playSound").hidden=true};
+["dragenter","dragover"].forEach(e=>$("dropzone").addEventListener(e,x=>{x.preventDefault();$("dropzone").classList.add("drag")}));
+["dragleave","drop"].forEach(e=>$("dropzone").addEventListener(e,x=>{x.preventDefault();$("dropzone").classList.remove("drag")}));
+$("dropzone").addEventListener("drop",e=>{const f=e.dataTransfer.files[0];if(f){const dt=new DataTransfer();dt.items.add(f);$("video").files=dt.files;setFile(f)}});
 
 function audioBufferToWav(buffer,targetRate=16000){
-  const inputRate=buffer.sampleRate, channels=buffer.numberOfChannels;
-  const length=Math.max(1,Math.round(buffer.length*targetRate/inputRate));
-  const pcm=new Int16Array(length);
-  for(let i=0;i<length;i++){
-    const pos=i*inputRate/targetRate, a=Math.floor(pos), b=Math.min(a+1,buffer.length-1), frac=pos-a;
-    let sum=0;
-    for(let ch=0;ch<channels;ch++){
-      const data=buffer.getChannelData(ch);
-      sum += data[a]*(1-frac)+data[b]*frac;
-    }
-    let v=(sum/channels)*32767;
-    v=Math.max(-32768,Math.min(32767,v));
-    pcm[i]=v;
-  }
-  const wav=new ArrayBuffer(44+pcm.length*2), view=new DataView(wav);
-  const write=(o,str)=>{for(let i=0;i<str.length;i++)view.setUint8(o+i,str.charCodeAt(i));};
-  write(0,"RIFF"); view.setUint32(4,36+pcm.length*2,true); write(8,"WAVE");
-  write(12,"fmt "); view.setUint32(16,16,true); view.setUint16(20,1,true); view.setUint16(22,1,true);
-  view.setUint32(24,targetRate,true); view.setUint32(28,targetRate*2,true); view.setUint16(32,2,true); view.setUint16(34,16,true);
-  write(36,"data"); view.setUint32(40,pcm.length*2,true);
-  new Uint8Array(wav,44).set(new Uint8Array(pcm.buffer));
-  return new Blob([wav],{type:"audio/wav"});
+ const channels=buffer.numberOfChannels,inputRate=buffer.sampleRate,length=Math.max(1,Math.round(buffer.length*targetRate/inputRate)),pcm=new Int16Array(length);
+ for(let i=0;i<length;i++){const pos=i*inputRate/targetRate,a=Math.floor(pos),b=Math.min(a+1,buffer.length-1),frac=pos-a;let sum=0;for(let ch=0;ch<channels;ch++){const d=buffer.getChannelData(ch);sum+=d[a]*(1-frac)+d[b]*frac}pcm[i]=Math.max(-32768,Math.min(32767,(sum/channels)*32767))}
+ const wav=new ArrayBuffer(44+pcm.length*2),v=new DataView(wav),w=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i))};
+ w(0,"RIFF");v.setUint32(4,36+pcm.length*2,true);w(8,"WAVE");w(12,"fmt ");v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,targetRate,true);v.setUint32(28,targetRate*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);w(36,"data");v.setUint32(40,pcm.length*2,true);new Uint8Array(wav,44).set(new Uint8Array(pcm.buffer));return new Blob([wav],{type:"audio/wav"});
 }
-
 async function makeBrowserAudio(file){
-  // Fast path: decode the media directly in the browser when supported.
-  try{
-    const AC=window.AudioContext||window.webkitAudioContext;
-    if(AC){
-      const ctx=new AC();
-      try{
-        const ab=await file.arrayBuffer();
-        const decoded=await ctx.decodeAudioData(ab.slice(0));
-        const blob=audioBufferToWav(decoded,16000);
-        await ctx.close();
-        if(blob.size>2048)return new File([blob],"browser-audio.wav",{type:"audio/wav"});
-      }catch(e){
-        try{await ctx.close()}catch{}
-      }
-    }
-  }catch(e){}
-
-  // Fallback for Android Chrome: capture the playable media's audio track.
-  try{
-    const p=$("preview");
-    const stream=(p.captureStream&&p.captureStream())||(p.mozCaptureStream&&p.mozCaptureStream());
-    if(stream){
-      let tracks=stream.getAudioTracks();
-      if(!tracks.length){
-        const AC=window.AudioContext||window.webkitAudioContext;
-        if(AC){
-          const ctx=new AC(), src=ctx.createMediaElementSource(p), dest=ctx.createMediaStreamDestination();
-          src.connect(dest); src.connect(ctx.destination);
-          tracks=dest.stream.getAudioTracks();
-          p._audioCtx=ctx;
-          p._audioSource=src;
-        }
-      }
-      if(tracks.length){
-        const recStream=new MediaStream(tracks);
-        const mime=MediaRecorder.isTypeSupported("audio/webm;codecs=opus")?"audio/webm;codecs=opus":"audio/webm";
-        const rec=new MediaRecorder(recStream,{mimeType:mime});
-        const chunks=[];
-        return await new Promise(async(resolve,reject)=>{
-          rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
-          rec.onerror=e=>reject(e.error||new Error("Browser audio recorder failed"));
-          rec.onstop=()=>{
-            const blob=new Blob(chunks,{type:mime});
-            resolve(blob.size>1024?new File([blob],"browser-audio.webm",{type:mime}):null);
-          };
-          const oldRate=p.playbackRate;
-          const oldTime=p.currentTime;
-          p.muted=false;p.volume=1;p.playbackRate=1;
-          rec.start(250);
-          try{await p.play()}catch(e){rec.stop();return reject(e)}
-          const stop=()=>{p.removeEventListener("ended",stop);try{rec.stop()}catch{};p.pause();p.currentTime=oldTime;p.playbackRate=oldRate;};
-          p.addEventListener("ended",stop,{once:true});
-        });
-      }
-    }
-  }catch(e){}
-  return null;
+ try{const AC=window.AudioContext||window.webkitAudioContext;if(AC){const ctx=new AC();try{const decoded=await ctx.decodeAudioData((await file.arrayBuffer()).slice(0));const blob=audioBufferToWav(decoded);await ctx.close();if(blob.size>2048)return new File([blob],"browser-audio.wav",{type:"audio/wav"})}catch(e){try{await ctx.close()}catch{}}}}catch(e){}
+ try{const p=$("preview"),stream=(p.captureStream&&p.captureStream())||(p.mozCaptureStream&&p.mozCaptureStream());if(stream){let tracks=stream.getAudioTracks();if(!tracks.length){const AC=window.AudioContext||window.webkitAudioContext;if(AC){const ctx=new AC(),src=ctx.createMediaElementSource(p),dest=ctx.createMediaStreamDestination();src.connect(dest);src.connect(ctx.destination);tracks=dest.stream.getAudioTracks()}}
+ if(tracks.length){const rec=new MediaRecorder(new MediaStream(tracks),{mimeType:MediaRecorder.isTypeSupported("audio/webm;codecs=opus")?"audio/webm;codecs=opus":"audio/webm"}),chunks=[];return await new Promise(async(resolve,reject)=>{rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};rec.onerror=e=>reject(e.error);rec.onstop=()=>{const b=new Blob(chunks,{type:rec.mimeType});resolve(b.size>1024?new File([b],"browser-audio.webm",{type:rec.mimeType}):null)};rec.start(250);try{await p.play()}catch(e){rec.stop();return reject(e)};p.onended=()=>{try{rec.stop()}catch{};p.pause()}})}}
+ }catch(e){} return null;
 }
 
-$("playSound").onclick=async()=>{
-  const p=$("preview");
-  p.muted=false;p.defaultMuted=false;p.volume=1;
-  try{
-    await p.play();
-    $("audioStatus").textContent="🔊 Original video audio is playing";
-    $("audioStatus").classList.remove("warn");
-  }catch(e){
-    $("audioStatus").textContent="⚠️ အသံဖွင့်မရပါ — ဖုန်း Media Volume ကိုဖွင့်ပြီး Video Play ကိုနှိပ်ပါ";
-    $("audioStatus").classList.add("warn");
-  }
+function progress(n,title,msg){$("bar").style.width=n+"%";$("percent").textContent=Math.round(n)+"%";$("statusTitle").textContent=title;$("status").textContent=msg;$("progressText").textContent=msg}
+async function pollOriginal(id){
+ const r=await fetch("/api/status/"+id),j=await r.json();if(!r.ok)throw Error(j.error||"Status error");
+ if(j.status==="error"){progress(0,"✕ Failed",j.error);$("generateOriginal").disabled=false;return}
+ progress(j.progress||0,j.stage==="transcription"?"Generating Original SRT...":"Processing...",j.message||"Please wait...");
+ if(j.status==="complete"&&j.stage==="original_srt_ready"){
+   $("originalDownload").href=j.files.originalSrt;$("originalActions").hidden=false;
+   $("originalState").hidden=true;$("generateOriginal").disabled=false;
+   progress(100,"✓ Original SRT Ready","Gemini မှာ Burmese ဘာသာပြန်ပြီး ပြန်တင်ပါ");
+   $("originalActions").scrollIntoView({behavior:"smooth",block:"center"});return;
+ }
+ setTimeout(()=>pollOriginal(id),1200);
+}
+$("generateOriginal").onclick=async()=>{
+ const f=selectedFile||$("video").files[0],k=localStorage.getItem("lynn_gemini_key")||$("key").value.trim();
+ if(!f){alert("Video ရွေးပါ");return} if(!k){$("key").focus();alert("Gemini API Key ထည့်ပါ");return}
+ $("generateOriginal").disabled=true;progress(5,"Uploading...","Video တင်နေပါတယ်...");
+ try{
+   const fd=new FormData();fd.append("video",f);
+   $("audioBackup").hidden=false;$("audioBackup").textContent="⏳ Browser audio backup ပြင်ဆင်နေပါတယ်...";
+   let ba=null;try{ba=await makeBrowserAudio(f)}catch(e){}
+   if(ba){fd.append("browserAudio",ba);$("audioBackup").textContent="✓ Audio backup ready"}else{$("audioBackup").textContent="ℹ️ Server က video audio ကို တိုက်ရိုက်စမ်းပါမယ်"}
+   const r=await fetch("/api/process",{method:"POST",headers:{"x-gemini-api-key":k},body:fd}),j=await r.json();if(!r.ok)throw Error(j.error||"Upload failed");
+   await pollOriginal(j.jobId);
+ }catch(e){progress(0,"✕ Error",e.message);$("generateOriginal").disabled=false}
 };
-$("remove").onclick=()=>{
-  selectedFile=null;
-  $("video").value="";
-  $("fileInfo").hidden=true;
-  $("preview").pause();
-  $("preview").hidden=true;
-  $("preview").removeAttribute("src");
-  $("preview").load();
-  $("playSound").hidden=true;
-  $("audioStatus").hidden=true;
-  $("audioBackup").hidden=true;
+
+let burmeseFile=null;
+$("burmeseSrtFile").onchange=async()=>{burmeseFile=$("burmeseSrtFile").files[0]||null;if(burmeseFile){$("srtName").textContent=burmeseFile.name;try{$("srtText").value=await burmeseFile.text()}catch(e){} }checkVoice()};
+$("srtText").oninput=checkVoice;
+function checkVoice(){$("generateVoice").disabled=!($("srtText").value.trim()||burmeseFile)}
+$("generateVoice").onclick=async()=>{
+ const text=$("srtText").value.trim();if(!text&&!burmeseFile){alert("Burmese SRT တင်ပါ သို့မဟုတ် paste လုပ်ပါ");return}
+ $("generateVoice").disabled=true;progress(10,"AI Voice","Burmese SRT ကို အသံပြောင်းနေပါတယ်...");
+ try{
+   const fd=new FormData();
+   if(text)fd.append("burmeseSrtText",text);else fd.append("burmeseSrt",burmeseFile);
+   const r=await fetch("/api/voice",{method:"POST",body:fd}),j=await r.json();if(!r.ok)throw Error(j.error||"Voice failed");
+   await pollVoice(j.jobId);
+ }catch(e){progress(0,"✕ Error",e.message);$("generateVoice").disabled=false}
 };
-["dragenter","dragover"].forEach(e=>$("dropzone").addEventListener(e,x=>{x.preventDefault();$("dropzone").classList.add("drag");}));
-["dragleave","drop"].forEach(e=>$("dropzone").addEventListener(e,x=>{x.preventDefault();$("dropzone").classList.remove("drag");}));
-$("dropzone").addEventListener("drop",e=>{const f=e.dataTransfer.files[0];if(f){const dt=new DataTransfer();dt.items.add(f);$("video").files=dt.files;setFile(f);}});
-
-const stageOrder=["queued","audio","transcription","translation","recap","voice","render","complete"];
-const stageText={queued:"Uploading and preparing your video...",audio:"Extracting audio with FFmpeg...",transcription:"Generating original subtitles with Gemini AI...",translation:"Translating subtitles into Burmese...",recap:"Generating Burmese recap script with Gemini AI...",voice:"Creating Burmese AI voice...",render:"Rendering final recap video...",complete:"Processing complete!"};
-function setProgress(n,s,stage){
-  $("bar").style.width=Math.max(0,n)+"%";$("percent").textContent=Math.round(n)+"%";$("status").textContent=s;
-  $("spinner").classList.toggle("done",stage==="complete");const stepIndex=stageOrder.indexOf(stage);$("stepLabel").textContent=stage==="complete"?"Complete ✓":"Step "+Math.max(1,stepIndex+1)+" of 7";
-  document.querySelectorAll(".step").forEach(el=>{const key=el.dataset.stage,idx=stageOrder.indexOf(key),cur=stageOrder.indexOf(stage);el.classList.toggle("done",idx<cur||stage==="complete");el.classList.toggle("current",key===stage);});
+async function pollVoice(id){
+ const r=await fetch("/api/status/"+id),j=await r.json();if(!r.ok)throw Error(j.error||"Status error");
+ if(j.status==="error"){progress(0,"✕ Voice Failed",j.error);$("generateVoice").disabled=false;return}
+ progress(j.progress||0,"Creating Burmese AI Voice...","AI Voice ဖန်တီးနေပါတယ်...");
+ if(j.status==="complete"&&j.stage==="voice_ready"){
+   $("voicePlayer").src=j.files.voice;$("voiceDownload").href=j.files.voice;$("burmeseDownload").href=j.files.burmeseSrt;
+   $("voiceResult").hidden=false;$("generateVoice").disabled=false;progress(100,"✓ AI Voice Ready","MP3 Download လုပ်နိုင်ပါပြီ");
+   $("voiceResult").scrollIntoView({behavior:"smooth",block:"center"});return;
+ }
+ setTimeout(()=>pollVoice(id),1200);
 }
-async function poll(id){
-  const r=await fetch("/api/status/"+id),j=await r.json();if(!r.ok)throw Error(j.error||"Status error");
-  setProgress(j.progress||0,stageText[j.stage]||j.stage,j.stage);
-  if(j.status==="complete"){
-    for(const [id,url] of [["videoLink",j.files.video],["origLink",j.files.originalSrt],["myLink",j.files.burmeseSrt],["recapLink",j.files.recap]])$(id).href=url;
-    $("resultPreview").src=j.files.video;$("result").hidden=false;$("result").scrollIntoView({behavior:"smooth",block:"center"});return;
-  }
-  if(j.status==="error"){ const failed=j.failedStage||"audio"; setProgress(0,"✕ "+(stageText[failed]||failed)+" failed",failed); $("spinner").classList.remove("done"); $("status").textContent="✕ "+j.error; $("progressText").textContent="Processing failed — "+(stageText[failed]||failed); $("percent").textContent="0%"; $("bar").style.width="0"; $("go").disabled=false; return;}
-  $("progressText").textContent=stageText[j.stage]||"Processing...";
-  setTimeout(()=>poll(id),1500);
-}
-$("go")?.addEventListener("click",async()=>{const f=$("video").files[0],k=localStorage.getItem("lynn_gemini_key")||$("key").value.trim();if(!f){setProgress(0,"Please choose a video first","queued");$("upload").scrollIntoView({behavior:"smooth"});return;}if(!k){setProgress(0,"Please enter your Gemini API Key","queued");$("key").focus();return;}
-  $("go").disabled=true;$("result").hidden=true;setProgress(5,"Uploading video...","queued");
-  try{
-    const fd=new FormData();
-    fd.append("video",f);
-    fd.append("ratio",$("ratio").value);
-    fd.append("crf",$("crf").value);
-
-    $("audioBackup").hidden=false;
-    $("audioBackup").textContent="⏳ Checking / preparing browser audio backup...";
-    let browserAudio=null;
-    try{browserAudio=await makeBrowserAudio(f);}catch(e){}
-    if(browserAudio){
-      fd.append("browserAudio",browserAudio);
-      $("audioBackup").textContent="✓ Browser audio backup attached";
-      $("audioBackup").classList.remove("warn");
-    }else{
-      $("audioBackup").textContent="ℹ️ Sending original video — Server will try its own audio track first";
-      $("audioBackup").classList.add("warn");
-    }
-
-    const r=await fetch("/api/process",{method:"POST",headers:{"x-gemini-api-key":k},body:fd});
-    const j=await r.json();
-    if(!r.ok)throw Error(j.error||"Processing failed");
-    await poll(j.jobId);
-  }catch(e){$("status").textContent="✕ "+e.message;$("percent").textContent="0%";$("go").disabled=false;}
-});
-document.querySelectorAll(".nav").forEach(n=>n.onclick=()=>{
-  if(n.dataset.section==="upload"){goToUpload(false);return;}
-  const target=$(n.dataset.section);
-  if(!target)return;
-  target.scrollIntoView({behavior:"smooth",block:"start"});
-  document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));
-  n.classList.add("active");
-});
-$("themeBtn").onclick=()=>document.body.classList.toggle("bright");
 </script>
 </body>
 </html>
