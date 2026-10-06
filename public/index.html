@@ -141,7 +141,7 @@ const stageOrder=["queued","audio","transcription","translation","recap","voice"
 const stageText={queued:"Uploading and preparing your video...",audio:"Extracting audio with FFmpeg...",transcription:"Generating original subtitles with Gemini AI...",translation:"Translating subtitles into Burmese...",recap:"Generating Burmese recap script with Gemini AI...",voice:"Creating Burmese AI voice...",render:"Rendering final recap video...",complete:"Processing complete!"};
 function setProgress(n,s,stage){
   $("bar").style.width=Math.max(0,n)+"%";$("percent").textContent=Math.round(n)+"%";$("status").textContent=s;
-  $("spinner").classList.toggle("done",stage==="complete");$("stepLabel").textContent=stage==="complete"?"Complete ✓":"Step "+(stageOrder.indexOf(stage)+1)+" of 7";
+  $("spinner").classList.toggle("done",stage==="complete");const stepIndex=stageOrder.indexOf(stage);$("stepLabel").textContent=stage==="complete"?"Complete ✓":"Step "+Math.max(1,stepIndex+1)+" of 7";
   document.querySelectorAll(".step").forEach(el=>{const key=el.dataset.stage,idx=stageOrder.indexOf(key),cur=stageOrder.indexOf(stage);el.classList.toggle("done",idx<cur||stage==="complete");el.classList.toggle("current",key===stage);});
 }
 async function poll(id){
