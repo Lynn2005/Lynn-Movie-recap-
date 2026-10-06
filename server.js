@@ -187,13 +187,16 @@ app.post("/api/process",upload.fields([
 
 app.post("/api/voice",upload.single("burmeseSrt"),async(req,res)=>{
   const file=req.file;
-  if(!file)return res.status(400).json({error:"Burmese SRT မရှိပါ"});
+  const pasted=String(req.body?.burmeseSrtText||"").trim();
+  if(!file&&!pasted)return res.status(400).json({error:"Burmese SRT မရှိပါ"});
+  const srt=file?fs.readFileSync(file.path,"utf8"):pasted;
+  if(file){try{fs.unlinkSync(file.path)}catch{}}
   const id=crypto.randomUUID();
-  job(id,{status:"queued",stage:"queued",progress:5});
-  createVoiceJob(id,fs.readFileSync(file.path,"utf8"),{});
+  job(id,{status:"queued",stage:"voice",progress:5});
+  createVoiceJob(id,srt,{});
   res.json({jobId:id});
 });
 
 app.get("/api/status/:id",(req,res)=>{const j=jobs.get(req.params.id);if(!j)return res.status(404).json({error:"Job not found"});res.json(j)});
-app.get("/api/download/:id/:file",(req,res)=>{const allowed=["final.mp4","original.srt","burmese.srt","recap.txt"];const file=path.basename(req.params.file);if(!allowed.includes(file))return res.status(400).send("Invalid file");const p=path.join(OUT,req.params.id,file);if(!fs.existsSync(p))return res.status(404).send("File not found");res.download(p,file)});
-app.listen(PORT,()=>console.log("Lynn Movie Recap 2.1 running on "+PORT));
+app.get("/api/download/:id/:file",(req,res)=>{const allowed=["final.mp4","original.srt","burmese.srt","recap.txt","voice.mp3"];const file=path.basename(req.params.file);if(!allowed.includes(file))return res.status(400).send("Invalid file");const p=path.join(OUT,req.params.id,file);if(!fs.existsSync(p))return res.status(404).send("File not found");res.download(p,file)});
+app.listen(PORT,()=>console.log("Lynn Movie Recap 3.0 running on "+PORT));
