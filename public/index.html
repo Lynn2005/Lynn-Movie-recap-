@@ -54,7 +54,7 @@
           <div id="originalState" class="empty">Video ရွေးပြီး <b>Original SRT ထုတ်မယ်</b> ကိုနှိပ်ပါ။</div>
           <div id="originalActions" hidden>
             <div class="successBox">✓ Original SRT အဆင်သင့်ဖြစ်ပါပြီ</div>
-            <a id="originalDownload" class="download" download>⬇ Original SRT Download</a>
+            <div class="downloadRow"><a id="originalDownload" class="download" download>⬇ Download Original SRT</a><button id="copyOriginal" class="download">📋 Copy SRT</button></div>
             <div class="tip">📌 ဒီ SRT ကို Download/Copy လုပ်ပြီး Gemini မှာ မြန်မာလို ဘာသာပြန်ပါ။ ပြီးရင် .srt ဖိုင်အဖြစ် ပြန်သိမ်းပါ။</div>
           </div>
         </div>
@@ -157,7 +157,7 @@ async function pollOriginal(id){
  }
  setTimeout(()=>pollOriginal(id),1200);
 }
-$("generateOriginal").onclick=async()=>{
+$("copyOriginal").onclick=async()=>{try{const r=await fetch($("originalDownload").href);const t=await r.text();await navigator.clipboard.writeText(t);$("copyOriginal").textContent="✓ Copied!";setTimeout(()=>$("copyOriginal").textContent="📋 Copy SRT",1600)}catch(e){$("copyOriginal").textContent="Copy မရပါ";setTimeout(()=>$("copyOriginal").textContent="📋 Copy SRT",1600)}};\n$("generateOriginal").onclick=async()=>{
  const f=selectedFile||$("video").files[0],k=localStorage.getItem("lynn_gemini_key")||$("key").value.trim();
  if(!f){alert("Video ရွေးပါ");return} if(!k){$("key").focus();alert("Gemini API Key ထည့်ပါ");return}
  $("generateOriginal").disabled=true;progress(5,"Uploading...","Video တင်နေပါတယ်...");
