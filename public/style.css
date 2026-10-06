@@ -58,3 +58,36 @@
   #upload{scroll-margin-top:6px}
   .uploadPanel{width:100%}
 }
+
+
+/* Android touch-phone fallback: also works when Chrome Desktop site widens the viewport. */
+html.touchPhone .sidebar{display:none!important}
+html.touchPhone .main{margin-left:0!important;width:100%!important;padding:0 10px!important}
+html.touchPhone .mobileBrand{display:flex!important;margin-right:auto;font-size:13px}
+html.touchPhone .miniKey,html.touchPhone .iconBtn{display:none!important}
+html.touchPhone .workspace{display:block!important}
+html.touchPhone .rightCol{display:grid!important;grid-template-columns:1fr!important}
+html.touchPhone .heroArt{min-height:260px}
+html.touchPhone .heroCopy{padding:28px 18px}
+html.touchPhone .heroCopy h1{font-size:31px}
+html.touchPhone .heroCopy h2{font-size:14px}
+html.touchPhone .heroCopy p{font-size:9px}
+html.touchPhone .heroLogo{width:45px;height:45px;font-size:24px}
+html.touchPhone .featureRow{left:14px;right:10px;bottom:13px;gap:5px;overflow:auto}
+html.touchPhone .featureRow span{white-space:nowrap;padding:6px 7px;font-size:7px}
+html.touchPhone .panel{padding:13px}
+html.touchPhone .dropzone{height:190px}
+html.touchPhone .resultBody{display:block}
+html.touchPhone .thumb{width:100%;height:190px}
+html.touchPhone .resultInfo{margin-top:12px}
+html.touchPhone .downloadGrid a{flex:1;text-align:center}
+html.touchPhone .featureGrid{grid-template-columns:1fr 1fr;gap:7px}
+html.touchPhone .featureGrid>div{min-height:105px}
+html.touchPhone .featureGrid small{font-size:7px}
+html.touchPhone footer{flex-wrap:wrap;padding:18px 4px;gap:9px}
+html.touchPhone footer em{width:100%;margin:0}
+html.touchPhone .steps{overflow-x:auto;justify-content:flex-start;gap:8px;padding-bottom:3px}
+html.touchPhone .step{min-width:65px}
+html.touchPhone .steps:before{display:none}
+html.touchPhone #upload{scroll-margin-top:6px}
+html.touchPhone .uploadPanel{width:100%}
