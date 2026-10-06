@@ -92,34 +92,35 @@ async function extractAudio(input,audio){
 }
 
 async function processJob(id,input,opts){
+  let failedStage="audio";
   const dir=path.join(OUT,id);fs.mkdirSync(dir,{recursive:true});
   const audio=path.join(dir,"audio.wav"),voice=path.join(dir,"voice.mp3");
   try{
-    job(id,{status:"processing",stage:"audio",progress:12,error:null});
+    failedStage="audio"; job(id,{status:"processing",stage:"audio",progress:12,error:null});
     await extractAudio(input,audio);
 
-    job(id,{stage:"transcription",progress:30});
+    failedStage="transcription"; job(id,{stage:"transcription",progress:30});
     const key=opts.key;
     const b64=fs.readFileSync(audio).toString("base64");
     const original=cleanSrt(await gemini("Create an accurate ORIGINAL-language subtitle transcript from this audio. Return ONLY valid SRT. Use sequential cue numbers and HH:MM:SS,mmm timestamps. Do not translate or explain.",key,b64));
     if(!original.trim())throw new Error("Original subtitle မထွက်လာပါ။");
     fs.writeFileSync(path.join(dir,"original.srt"),original);
 
-    job(id,{stage:"translation",progress:48});
+    failedStage="translation"; job(id,{stage:"translation",progress:48});
     const burmese=cleanSrt(await gemini("Translate every subtitle line below into natural conversational Burmese. Keep ALL cue numbers and timestamps EXACTLY unchanged. Return ONLY valid SRT. Do not add/remove cues.\n\n"+original,key));
     if(!burmese.trim())throw new Error("Burmese subtitle မထွက်လာပါ။");
     fs.writeFileSync(path.join(dir,"burmese.srt"),burmese);
 
-    job(id,{stage:"recap",progress:64});
+    failedStage="recap"; job(id,{stage:"recap",progress:64});
     const recap=await gemini("Write a natural, engaging Burmese movie recap narration from these Burmese subtitles. Keep the story accurate, explain events clearly, use casual spoken Burmese suitable for AI voice, and do not invent major events. Output ONLY the narration.\n\n"+burmese,key);
     if(!recap.trim())throw new Error("Recap script မထွက်လာပါ။");
     fs.writeFileSync(path.join(dir,"recap.txt"),recap.trim());
 
-    job(id,{stage:"voice",progress:78});
+    failedStage="voice"; job(id,{stage:"voice",progress:78});
     await tts(recap.trim(),voice);
     if(!fs.existsSync(voice)||fs.statSync(voice).size<1024)throw new Error("AI Voice ဖန်တီးမရပါ။");
 
-    job(id,{stage:"render",progress:88});
+    failedStage="render"; job(id,{stage:"render",progress:88});
     const ratio=opts.ratio||"9:16",crf=String(opts.crf||28);
     const vf=ratio==="16:9"?"scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2":ratio==="1:1"?"scale=720:720:force_original_aspect_ratio=decrease,pad=720:720:(ow-iw)/2:(oh-ih)/2":"scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2";
     const final=path.join(dir,"final.mp4");
@@ -128,7 +129,7 @@ async function processJob(id,input,opts){
     if(!fs.existsSync(final)||fs.statSync(final).size<1024)throw new Error("Final video render မအောင်မြင်ပါ။");
     job(id,{status:"complete",stage:"complete",progress:100,error:null,files:{video:"/api/download/"+id+"/final.mp4",originalSrt:"/api/download/"+id+"/original.srt",burmeseSrt:"/api/download/"+id+"/burmese.srt",recap:"/api/download/"+id+"/recap.txt"}});
   }catch(e){
-    job(id,{status:"error",stage:"error",progress:0,error:String(e.message||e)});
+    job(id,{status:"error",stage:"error",failedStage,progress:0,error:String(e.message||e)});
   }finally{try{fs.unlinkSync(input)}catch{}}
 }
 app.get("/api/health",(req,res)=>res.json({ok:true,app:"Lynn Movie Recap",version:"2.0.0"}));
