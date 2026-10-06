@@ -45,6 +45,16 @@ async function processJob(id,input,opts){
   const audio=path.join(dir,"audio.wav"), voice=path.join(dir,"voice.mp3");
   try{
     job(id,{status:"processing",stage:"audio",progress:12});
+    // Check whether the uploaded video actually contains an audio stream.
+    // Some downloaded MP4/DASH videos are video-only; the old "0:a:0"
+    // mapping caused FFmpeg to abort with "matches no streams".
+    const audioStreams=await run(ffprobe.path,[
+      "-v","error","-select_streams","a","-show_entries","stream=index",
+      "-of","csv=p=0",input
+    ]);
+    if(!audioStreams.trim()){
+      throw new Error("ဒီ Video ဖိုင်မှာ Audio Track မပါပါ။ အသံပါဝင်တဲ့ MP4 ကို ပြန်တင်ပေးပါ။");
+    }
     await run(ffmpeg,["-y","-i",input,"-map","0:a:0","-ac","1","-ar","16000","-c:a","pcm_s16le",audio]);
     job(id,{stage:"transcription",progress:30});
     const key=opts.key;
