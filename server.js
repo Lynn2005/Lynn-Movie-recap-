@@ -45,17 +45,56 @@ async function processJob(id,input,opts){
   const audio=path.join(dir,"audio.wav"), voice=path.join(dir,"voice.mp3");
   try{
     job(id,{status:"processing",stage:"audio",progress:12});
-    // Check whether the uploaded video actually contains an audio stream.
-    // Some downloaded MP4/DASH videos are video-only; the old "0:a:0"
-    // mapping caused FFmpeg to abort with "matches no streams".
-    const audioStreams=await run(ffprobe.path,[
-      "-v","error","-select_streams","a","-show_entries","stream=index",
-      "-of","csv=p=0",input
-    ]);
-    if(!audioStreams.trim()){
-      throw new Error("ဒီ Video ဖိုင်မှာ Audio Track မပါပါ။ အသံပါဝင်တဲ့ MP4 ကို ပြန်တင်ပေးပါ။");
+    // Robust audio extraction: first inspect streams, then let FFmpeg extract
+    // without relying on a fragile stream-map. This handles MP4/MOV variants
+    // whose audio metadata is unusual.
+    let probe="";
+    try{
+      probe=await run(ffprobe.path,[
+        "-v","error","-show_entries","stream=index,codec_type,codec_name",
+        "-of","json",input
+      ]);
+    }catch(e){ probe=""; }
+
+    let streams=[];
+    try{ streams=JSON.parse(probe||"{}").streams||[]; }catch(e){}
+    const hasAudio=streams.some(s=>s.codec_type==="audio");
+
+    if(hasAudio){
+      try{
+        await run(ffmpeg,[
+          "-y","-i",input,
+          "-vn","-map","0:a:0",
+          "-ac","1","-ar","16000","-c:a","pcm_s16le",audio
+        ]);
+      }catch(e){
+        // Fallback for containers with unusual stream metadata.
+        await run(ffmpeg,[
+          "-y","-i",input,
+          "-vn","-ac","1","-ar","16000","-c:a","pcm_s16le",audio
+        ]);
+      }
+    }else{
+      // A second FFmpeg probe can find streams that ffprobe metadata misses.
+      let ffmpegProbe="";
+      try{
+        ffmpegProbe=await run(ffmpeg,["-hide_banner","-i",input]);
+      }catch(e){
+        ffmpegProbe=String(e.message||"");
+      }
+      if(/Stream #\d+:\d+.*Audio:/i.test(ffmpegProbe)){
+        await run(ffmpeg,[
+          "-y","-i",input,
+          "-vn","-ac","1","-ar","16000","-c:a","pcm_s16le",audio
+        ]);
+      }else{
+        throw new Error("ဒီ MP4 ဖိုင်ထဲမှာ FFmpeg က Audio Stream ကို မတွေ့ပါ။ မူရင်းအသံပါတဲ့ MP4/MOV ဖိုင်ကို ပြန်တင်ပါ။");
+      }
     }
-    await run(ffmpeg,["-y","-i",input,"-map","0:a:0","-ac","1","-ar","16000","-c:a","pcm_s16le",audio]);
+
+    if(!fs.existsSync(audio)||fs.statSync(audio).size<1024){
+      throw new Error("Audio ကို Video ထဲကနေ Extract မလုပ်နိုင်ပါ။ Audio ပါတဲ့ မူရင်း Video ဖိုင်ကို ပြန်တင်ပါ။");
+    }
     job(id,{stage:"transcription",progress:30});
     const key=opts.key;
     const b64=fs.readFileSync(audio).toString("base64");
