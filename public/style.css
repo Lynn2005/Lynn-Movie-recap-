@@ -19,3 +19,42 @@
 @media(max-width:600px){
   #upload{scroll-margin-top:8px}
 }
+
+
+/* Force the mobile layout on touch phones even when Chrome is using Desktop site. */
+@media (hover:none) and (pointer:coarse){
+  .sidebar{display:none}
+  .main{margin-left:0;width:100%;padding:0 10px}
+  .topbar{height:58px}
+  .mobileBrand{display:flex;margin-right:auto;font-size:13px}
+  .mobileBrand .logoMark{width:29px;height:29px;font-size:16px}
+  .miniKey{display:none}
+  .heroArt{min-height:260px}
+  .heroCopy{padding:28px 18px}
+  .heroCopy h1{font-size:31px}
+  .heroCopy h2{font-size:14px}
+  .heroCopy p{font-size:9px}
+  .heroLogo{width:45px;height:45px;font-size:24px}
+  .heroArt:after{width:58%;opacity:.45}
+  .featureRow{left:14px;right:10px;bottom:13px;gap:5px;overflow:auto}
+  .featureRow span{white-space:nowrap;padding:6px 7px;font-size:7px}
+  .workspace{display:block}
+  .rightCol{display:grid;grid-template-columns:1fr}
+  .steps{overflow-x:auto;justify-content:flex-start;gap:8px;padding-bottom:3px}
+  .step{min-width:65px}
+  .steps:before{display:none}
+  .panel{padding:13px}
+  .dropzone{height:190px}
+  .resultBody{display:block}
+  .thumb{width:100%;height:190px}
+  .resultInfo{margin-top:12px}
+  .downloadGrid a{flex:1;text-align:center}
+  .featureGrid{grid-template-columns:1fr 1fr;gap:7px}
+  .featureGrid>div{min-height:105px}
+  .featureGrid small{font-size:7px}
+  footer{flex-wrap:wrap;padding:18px 4px;gap:9px}
+  footer em{width:100%;margin:0}
+  .iconBtn{display:none}
+  #upload{scroll-margin-top:6px}
+  .uploadPanel{width:100%}
+}
