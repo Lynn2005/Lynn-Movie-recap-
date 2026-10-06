@@ -10,3 +10,11 @@
 .audioStatus.warn{color:#ffd58a;border-color:rgba(255,190,70,.25);background:rgba(255,170,40,.08)}
 
 .audioBackup{margin-top:7px;padding:7px 10px;border:1px solid rgba(80,150,255,.22);border-radius:9px;background:rgba(30,70,130,.10);color:#a9c8f5;font-size:10px;font-weight:600}.audioBackup.warn{color:#ffd58a;border-color:rgba(255,190,70,.25);background:rgba(255,170,40,.08)}
+
+/* Upload navigation: always land exactly at the Upload Video panel. */
+#upload{scroll-margin-top:12px}
+.uploadPanel{scroll-margin-top:12px}
+.uploadFocus .uploadPanel{box-shadow:0 0 0 1px rgba(55,142,255,.45),0 14px 40px rgba(35,112,255,.12)}
+@media(max-width:600px){
+  #upload{scroll-margin-top:8px}
+}
