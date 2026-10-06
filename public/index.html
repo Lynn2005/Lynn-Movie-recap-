@@ -151,7 +151,7 @@ async function poll(id){
     for(const [id,url] of [["videoLink",j.files.video],["origLink",j.files.originalSrt],["myLink",j.files.burmeseSrt],["recapLink",j.files.recap]])$(id).href=url;
     $("resultPreview").src=j.files.video;$("result").hidden=false;$("result").scrollIntoView({behavior:"smooth",block:"center"});return;
   }
-  if(j.status==="error"){ $("spinner").classList.remove("done");$("status").textContent="✕ "+j.error; $("progressText").textContent="Processing failed"; $("percent").textContent="0%";$("bar").style.width="0"; $("go").disabled=false;return;}
+  if(j.status==="error"){ const failed=j.failedStage||"audio"; setProgress(0,"✕ "+(stageText[failed]||failed)+" failed",failed); $("spinner").classList.remove("done"); $("status").textContent="✕ "+j.error; $("progressText").textContent="Processing failed — "+(stageText[failed]||failed); $("percent").textContent="0%"; $("bar").style.width="0"; $("go").disabled=false; return;}
   $("progressText").textContent=stageText[j.stage]||"Processing...";
   setTimeout(()=>poll(id),1500);
 }
