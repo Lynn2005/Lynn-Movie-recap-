@@ -24,17 +24,16 @@ const run=(bin,args)=>new Promise((resolve,reject)=>execFile(bin,args,{maxBuffer
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 
 function getKey(req){return req.headers["x-gemini-api-key"]||process.env.GEMINI_API_KEY}
+function getModel(req){const requested=req.headers["x-gemini-model"];return requested==="gemini-3.8-flash"?"gemini-3.8-flash":"gemini-3.8-flash"}
 function job(id,p){jobs.set(id,{...(jobs.get(id)||{}),...p,updatedAt:Date.now()})}
 function srtTime(sec){const ms=Math.max(0,Math.round(sec*1000)),h=Math.floor(ms/3600000),m=Math.floor(ms%3600000/60000),s=Math.floor(ms%60000/1000),x=ms%1000;return String(h).padStart(2,"0")+":"+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0")+","+String(x).padStart(3,"0")}
 function cleanSrt(t){t=String(t||"").replace(/^```(?:srt|text)?/i,"").replace(/```$/,"").trim();const m=t.match(/(?:^|\n)\d+\s*\n\d\d:\d\d:\d\d,\d{3}\s*-->\s*\d\d:\d\d:\d\d,\d{3}[\s\S]*/);return(m?m[0]:t).trim()}
 function parseSrt(srt){return srt.split(/\n\s*\n/).map(b=>{const l=b.split(/\r?\n/),i=l.findIndex(x=>x.includes("-->"));if(i<0)return null;const m=l[i].match(/(\d\d:\d\d:\d\d,\d{3})\s*-->\s*(\d\d:\d\d:\d\d,\d{3})/);return m?{start:m[1],end:m[2],text:l.slice(i+1).join(" ").trim()}:null}).filter(Boolean)}
-async function gemini(prompt,key,audioBase64){
+async function gemini(prompt,key,audioBase64,modelName){
   // Gemini is no longer used for automatic transcription/translation.
   // Keep this helper only for future recap features.
   const gen=new GoogleGenerativeAI(key);
-  const configuredModel=process.env.GEMINI_MODEL||"gemini-3.8-flash";
-  const modelName=configuredModel==="gemini-2.5-flash"?"gemini-3.8-flash":configuredModel;
-  const model=gen.getGenerativeModel({model:modelName});
+  const model=gen.getGenerativeModel({model:modelName||process.env.GEMINI_MODEL||"gemini-3.8-flash"});
   const parts=audioBase64?[{inlineData:{data:audioBase64,mimeType:"audio/wav"}},{text:prompt}]:prompt;
   let last;
   for(let i=0;i<3;i++){try{return (await model.generateContent(parts)).response.text()}catch(e){last=e;if(!/503|UNAVAILABLE|overloaded|high demand|429/i.test(String(e.message||e)))throw e;await sleep(1500*(i+1))}}
@@ -123,7 +122,7 @@ async function processJob(id,input,opts){
     const b64=fs.readFileSync(audio).toString("base64");
     const original=cleanSrt(await gemini(
       "Create an accurate ORIGINAL-language subtitle transcript from this audio. Return ONLY valid SRT. Use sequential cue numbers and HH:MM:SS,mmm timestamps. Do not translate or explain.",
-      key,b64
+      key,b64,model
     ));
     if(!original.trim())throw new Error("Original subtitle မထွက်လာပါ။");
     fs.writeFileSync(path.join(dir,"original.srt"),original);
@@ -178,6 +177,7 @@ app.post("/api/process",upload.fields([
   const browserAudio=req.files?.browserAudio?.[0];
   if(!video)return res.status(400).json({error:"Video မရှိပါ"});
   const key=getKey(req);if(!key)return res.status(400).json({error:"Gemini API Key ထည့်ပါ"});
+  const model=getModel(req);
   const id=crypto.randomUUID();
   job(id,{status:"queued",stage:"queued",progress:3,audioBackup:!!browserAudio});
   processJob(id,video.path,{key,ratio:req.body.ratio,crf:req.body.crf,browserAudio:browserAudio?.path||null});
