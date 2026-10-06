@@ -19,8 +19,16 @@ function key(req){return req.headers["x-gemini-api-key"]||process.env.GEMINI_API
 function clean(s){return String(s||"").replace(/^\s*\`\`\`(?:srt|text)?/i,"").replace(/\`\`\`\s*$/,"").trim()}
 function parseSrt(s){return s.split(/\n\s*\n/).map(b=>{let a=b.split(/\r?\n/),i=a.findIndex(x=>x.includes("-->"));return i<0?null:a.slice(i+1).join(" ").trim()}).filter(Boolean)}
 async function geminiAudio(audio,k){
- const m=new GoogleGenerativeAI(k).getGenerativeModel({model:process.env.GEMINI_MODEL||"gemini-3.8-flash"});
- let last;for(let i=0;i<3;i++){try{return (await m.generateContent([{inlineData:{data:fs.readFileSync(audio).toString("base64"),mimeType:"audio/wav"}},{text:"Transcribe this audio accurately in its ORIGINAL spoken language. Return ONLY valid SRT with sequential numbers and HH:MM:SS,mmm timestamps. Do not translate. Do not explain."}])).response.text()}catch(e){last=e;if(!/503|429|UNAVAILABLE|overloaded|high demand/i.test(String(e.message)))throw e;await wait(1500*(i+1))}}throw last}
+ const models=[process.env.GEMINI_MODEL||"gemini-3.8-flash","gemini-3.7-flash","gemini-3.5-flash-lite"];
+ let last;
+ for(const name of [...new Set(models)]){
+  const m=new GoogleGenerativeAI(k).getGenerativeModel({model:name});
+  for(let i=0;i<2;i++){try{
+   return (await m.generateContent([{inlineData:{data:fs.readFileSync(audio).toString("base64"),mimeType:"audio/wav"}},{text:"Transcribe this audio accurately in its ORIGINAL spoken language. Return ONLY valid SRT with sequential numbers and HH:MM:SS,mmm timestamps. Do not translate. Do not explain."}])).response.text();
+  }catch(e){last=e;if(!/503|429|UNAVAILABLE|overloaded|high demand|quota|resource exhausted/i.test(String(e.message)))break;await wait(1200*(i+1))}}
+ }
+ throw last||new Error("Gemini free model မရပါ။")
+}
 async function process(id,input,k){
  const dir=path.join(OUT,id);fs.mkdirSync(dir,{recursive:true});const audio=path.join(dir,"audio.wav");
  try{
@@ -43,7 +51,7 @@ async function voiceJob(id,srt){
   setJob(id,{status:"complete",stage:"voice_ready",progress:100,message:"AI Voice အဆင်သင့်ပါပြီ",files:{voice:"/api/download/"+id+"/voice.mp3",burmeseSrt:"/api/download/"+id+"/burmese.srt"}});
  }catch(e){setJob(id,{status:"error",stage:"error",progress:0,error:e.message||String(e)})}
 }
-app.get("/api/health",(q,r)=>r.json({ok:true,version:"4.0.0"}));
+app.get("/api/health",(q,r)=>r.json({ok:true,version:"4.1.0",freeAI:true,models:["gemini-3.8-flash","gemini-3.7-flash","gemini-3.5-flash-lite"],tts:"edge-tts"}));
 app.post("/api/process",(req,res,next)=>{upload.single("video")(req,res,e=>{if(e)return next(e);const f=req.file;if(!f)return res.status(400).json({error:"Video ရွေးပါ"});const k=key(req);if(!k){try{fs.unlinkSync(f.path)}catch{};return res.status(400).json({error:"Gemini API Key ထည့်ပါ"})}const id=crypto.randomUUID();setJob(id,{status:"queued",stage:"upload",progress:5});process(id,f.path,k);res.json({jobId:id})})});
 app.post("/api/voice",(req,res,next)=>{upload.single("burmeseSrt")(req,res,e=>{if(e)return next(e);let s=req.file?fs.readFileSync(req.file.path,"utf8"):String(req.body.burmeseSrtText||"");if(req.file)try{fs.unlinkSync(req.file.path)}catch{};if(!s.trim())return res.status(400).json({error:"Burmese SRT တင်ပါ"});const id=crypto.randomUUID();setJob(id,{status:"queued",stage:"voice",progress:5});voiceJob(id,s);res.json({jobId:id})})});
 app.get("/api/status/:id",(req,res)=>{const j=jobs.get(req.params.id);j?res.json(j):res.status(404).json({error:"Job not found"})});
