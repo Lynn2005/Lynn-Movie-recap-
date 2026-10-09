@@ -10,85 +10,39 @@
 <body>
 <div class="app">
 <header class="topbar"><div class="brand"><div class="logo">LR</div><div><b>Lynn Recap</b><span>AI MOVIE WORKSPACE</span></div></div><div class="online"><i></i> AI READY</div></header>
-
 <main>
 <section class="hero"><div class="eyebrow">FREE AI RECAP WORKFLOW</div><h1>Movie → <em>SRT</em> → Burmese Voice</h1><p>Video ကိုတင်ပါ။ Audio ထုတ်ပြီး Original SRT ဖန်တီးပေးမယ်။ Burmese SRT ပြန်ထည့်ရင် AI Voice ထုတ်ပေးမယ်။</p></section>
-
-<div class="steps">
-<div class="step active"><strong>01</strong><span>Video</span></div><div class="line"></div>
-<div class="step"><strong>02</strong><span>Original SRT</span></div><div class="line"></div>
-<div class="step"><strong>03</strong><span>Burmese SRT</span></div><div class="line"></div>
-<div class="step"><strong>04</strong><span>Voice</span></div>
-</div>
-
+<div class="steps"><div class="step active"><strong>01</strong><span>Video</span></div><div class="line"></div><div class="step"><strong>02</strong><span>Original SRT</span></div><div class="line"></div><div class="step"><strong>03</strong><span>Burmese SRT</span></div><div class="line"></div><div class="step"><strong>04</strong><span>Voice</span></div></div>
 <section class="card" id="videoCard">
 <div class="cardHead"><div><small>STEP 01</small><h2>Upload your movie</h2></div><span class="badge">MP4 · MOV · MKV</span></div>
 <label class="drop" id="drop"><input id="video" type="file" accept="video/*"><div class="uploadIcon">↑</div><b id="fileTitle">Drop video here</b><span id="fileMeta">or tap to choose a video · max 500 MB</span></label>
 <div class="previewWrap" id="previewWrap"><video id="preview" controls playsinline></video></div>
-<div class="settings">
-<div><label>AI model</label><select id="model"><option value="gemini-3.8-flash">Gemini 3.8 Flash</option><option value="gemini-3.7-flash">Gemini 3.7 Flash</option><option value="gemini-3.5-flash-lite">Gemini 3.5 Flash-Lite</option></select></div>
-<div><label>Gemini API Key</label><div class="keybox"><input id="key" type="password" placeholder="AIza..."><button id="toggleKey" type="button">Show</button></div></div>
-</div>
-<div class="actions"><button class="primary" id="process">Create Original SRT <span>→</span></button><button class="ghost" id="health">Check AI</button></div>
-<div class="hint">🔒 API key is kept in this browser only. It is sent to the server for your request.</div>
+<div class="settings"><div><label>AI model</label><select id="model"><option value="gemini-2.5-flash">Gemini 2.5 Flash</option><option value="gemini-2.0-flash">Gemini 2.0 Flash</option></select></div><div><label>Gemini API Key</label><div class="keybox"><input id="key" type="password" placeholder="AIza..."><button id="toggleKey" type="button">Show</button></div><small style="display:block;margin-top:7px"><a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" style="color:#9ee7bc">Get Gemini API key ↗</a></small></div></div>
+<div class="actions"><button class="primary" id="process">Create Original SRT <span>→</span></button><button class="ghost" id="health">Check AI</button></div><div class="hint">🔒 API key is stored in this browser and sent to the server for your request.</div>
 </section>
-
-<section class="card hidden" id="originalCard">
-<div class="cardHead"><div><small>STEP 02</small><h2>Original SRT ready</h2></div><span class="success">● COMPLETE</span></div>
-<div class="result"><div class="resultIcon">SRT</div><div><b>Your original subtitles are ready</b><span>Download and translate them to Burmese.</span></div><a id="downloadOriginal" class="download">Download ↓</a></div>
-<div class="copyRow"><button id="copyOriginal" class="ghost wide">Copy SRT</button><textarea id="originalText" readonly placeholder="SRT will appear here..."></textarea></div>
-</section>
-
-<section class="card" id="burmeseCard">
-<div class="cardHead"><div><small>STEP 03</small><h2>Burmese SRT</h2></div><span class="badge">Paste or upload</span></div>
-<label class="miniDrop"><input id="srtFile" type="file" accept=".srt,text/plain"><span>＋ Upload Burmese .srt</span></label>
-<textarea id="burmeseText" class="editor" placeholder="1
-00:00:00,000 --> 00:00:02,000
-မြန်မာဘာသာပြန်စာသား...
-
-2
-00:00:02,000 --> 00:00:04,000
-..."></textarea>
-<button class="primary wide" id="voice">Generate Burmese AI Voice <span>→</span></button>
-</section>
-
-<section class="card hidden" id="voiceCard">
-<div class="cardHead"><div><small>STEP 04</small><h2>Burmese voice ready</h2></div><span class="success">● COMPLETE</span></div>
-<audio id="audio" controls></audio>
-<div class="downloads"><a id="downloadVoice" class="download big">Download AI Voice ↓</a><a id="downloadBurmese" class="download secondary">Download Burmese SRT ↓</a></div>
-</section>
-
+<section class="card hidden" id="originalCard"><div class="cardHead"><div><small>STEP 02</small><h2>Original SRT ready</h2></div><span class="success">● COMPLETE</span></div><div class="result"><div class="resultIcon">SRT</div><div><b>Your original subtitles are ready</b><span>Download and translate them to Burmese.</span></div><a id="downloadOriginal" class="download">Download ↓</a></div><div class="copyRow"><button id="copyOriginal" class="ghost wide">Copy SRT</button><textarea id="originalText" readonly placeholder="SRT will appear here..."></textarea></div></section>
+<section class="card" id="burmeseCard"><div class="cardHead"><div><small>STEP 03</small><h2>Burmese SRT</h2></div><span class="badge">Paste or upload</span></div><label class="miniDrop"><input id="srtFile" type="file" accept=".srt,text/plain"><span>＋ Upload Burmese .srt</span></label><textarea id="burmeseText" class="editor" placeholder="1&#10;00:00:00,000 --> 00:00:02,000&#10;မြန်မာဘာသာပြန်စာသား...&#10;&#10;2&#10;00:00:02,000 --> 00:00:04,000&#10;..."></textarea><button class="primary wide" id="voice">Generate Burmese AI Voice <span>→</span></button></section>
+<section class="card hidden" id="voiceCard"><div class="cardHead"><div><small>STEP 04</small><h2>Burmese voice ready</h2></div><span class="success">● COMPLETE</span></div><audio id="audio" controls></audio><div class="downloads"><a id="downloadVoice" class="download big">Download AI Voice ↓</a><a id="downloadBurmese" class="download secondary">Download Burmese SRT ↓</a></div></section>
 <section class="status hidden" id="status"><div class="spinner"></div><div><b id="statusTitle">Processing...</b><span id="statusMsg">Please wait</span></div><strong id="progress">0%</strong></section>
-</main>
-<footer>Lynn Recap AI · Free AI workflow · Built for mobile</footer>
-</div>
-<div id="toast"></div>
+</main><footer>Lynn Recap AI · Free AI workflow · Built for mobile</footer></div><div id="toast"></div>
 <script>
-const $=id=>document.getElementById(id), keyStore="lynn_gemini_key";
-let currentJob=null, poller=null;
+const $=id=>document.getElementById(id),keyStore="lynn_gemini_key";let currentJob=null,poller=null;
 $("key").value=localStorage.getItem(keyStore)||"";
 $("toggleKey").onclick=()=>{const x=$("key");x.type=x.type==="password"?"text":"password";$("toggleKey").textContent=x.type==="password"?"Show":"Hide"};
 function toast(msg,bad=false){const t=$("toast");t.textContent=msg;t.className=bad?"show bad":"show";setTimeout(()=>t.className="",3200)}
 function setStep(n){document.querySelectorAll(".step").forEach((x,i)=>x.classList.toggle("active",i<n))}
 function busy(on,title="Processing",msg="Please wait",p=0){$("status").classList.toggle("hidden",!on);$("statusTitle").textContent=title;$("statusMsg").textContent=msg;$("progress").textContent=p+"%"}
-$("video").onchange=()=>pickVideo($("video").files[0]);
+$("video").onchange=() => pickVideo($("video").files[0]);
 function pickVideo(f){if(!f)return;$("fileTitle").textContent=f.name;$("fileMeta").textContent=(f.size/1048576).toFixed(1)+" MB · ready";$("preview").src=URL.createObjectURL(f);$("previewWrap").classList.add("show")}
 ["dragover","dragenter"].forEach(e=>$("drop").addEventListener(e,x=>{x.preventDefault();$("drop").classList.add("drag")}));
-$("drop").addEventListener("dragleave",()=> $("drop").classList.remove("drag"));
-$("drop").addEventListener("drop",e=>{e.preventDefault();$("drop").classList.remove("drag");const f=e.dataTransfer.files[0];if(f&&f.type.startsWith("video/")){$("video").files=e.dataTransfer.files;pickVideo(f)}});
-$("health").onclick=async()=>{try{const r=await fetch("/api/health");const j=await r.json();toast(j.ok?"AI server is online ✓":"AI server error",!j.ok)}catch(e){toast("Server မရပါ",true)}};
-$("process").onclick=async()=>{
- const f=$("video").files[0],k=$("key").value.trim(); if(!f)return toast("Video ရွေးပါ",true); if(f.size>500*1048576)return toast("Video 500MB ထက်မကျော်ရပါ",true); if(!k)return toast("Gemini API Key ထည့်ပါ",true);
- localStorage.setItem(keyStore,k);busy(true,"Creating Original SRT","Audio ထုတ်ပြီး AI က စာသားဖမ်းနေပါတယ်",5);$("process").disabled=true;
- try{const fd=new FormData();fd.append("video",f);const r=await fetch("/api/process",{method:"POST",headers:{"x-gemini-api-key":k,"x-gemini-model":$("model").value},body:fd});const j=await r.json();if(!r.ok)throw Error(j.error||"Upload failed");currentJob=j.jobId;poller=setInterval(poll,1200)}catch(e){busy(false);toast(e.message,true);$("process").disabled=false}
-};
+$("drop").addEventListener("dragleave",()=>$("drop").classList.remove("drag"));
+$("drop").addEventListener("drop",e=>{e.preventDefault();$("drop").classList.remove("drag");const f=e.dataTransfer.files[0];if(f&&f.type.startsWith("video/")){try{$("video").files=e.dataTransfer.files}catch{}pickVideo(f)}});
+$("health").onclick=async()=>{try{const r=await fetch("/api/health"),j=await r.json();toast(j.ok?"AI server is online ✓":"AI server error",!j.ok)}catch(e){toast("Server မရပါ",true)}};
+$("process").onclick=async()=>{const f=$("video").files[0],k=$("key").value.trim();if(!f)return toast("Video ရွေးပါ",true);if(f.size>500*1048576)return toast("Video 500MB ထက်မကျော်ရပါ",true);if(!k)return toast("Gemini API Key ထည့်ပါ",true);localStorage.setItem(keyStore,k);busy(true,"Creating Original SRT","Audio ထုတ်ပြီး AI က စာသားဖမ်းနေပါတယ်",5);$("process").disabled=true;
+try{const fd=new FormData();fd.append("video",f);const r=await fetch("/api/process",{method:"POST",headers:{"x-gemini-api-key":k,"x-gemini-model":$("model").value},body:fd});const j=await r.json();if(!r.ok)throw Error(j.error||"Upload failed");currentJob=j.jobId;poller=setInterval(poll,1200)}catch(e){busy(false);toast(e.message,true);$("process").disabled=false}};
 async function poll(){try{const r=await fetch("/api/status/"+currentJob),j=await r.json();if(j.status==="error"){clearInterval(poller);busy(false);$("process").disabled=false;toast(j.error||"Processing failed",true);return}busy(true,j.stage==="srt"?"Creating Original SRT":"Processing",j.message||"Please wait",j.progress||0);if(j.status==="complete"){clearInterval(poller);busy(false);$("process").disabled=false;$("originalCard").classList.remove("hidden");$("downloadOriginal").href=j.files.originalSrt;const rr=await fetch(j.files.originalSrt);$("originalText").value=await rr.text();setStep(2);$("originalCard").scrollIntoView({behavior:"smooth",block:"start"});toast("Original SRT ready ✓")}}catch(e){}}
-$("copyOriginal").onclick=async()=>{await navigator.clipboard.writeText($("originalText").value);toast("SRT copied ✓")};
+$("copyOriginal").onclick=async()=>{try{await navigator.clipboard.writeText($("originalText").value);toast("SRT copied ✓")}catch(e){$("originalText").select();toast("စာသားကိုရွေးထားပါတယ်။ Copy လုပ်ပါ")}};
 $("srtFile").onchange=async()=>{const f=$("srtFile").files[0];if(f)$("burmeseText").value=await f.text()};
-$("voice").onclick=async()=>{
- const text=$("burmeseText").value.trim();if(!text)return toast("Burmese SRT ထည့်ပါ",true);
- busy(true,"Generating Burmese Voice","Burmese SRT ကို AI voice ပြောင်းနေပါတယ်",15);$("voice").disabled=true;
- try{const fd=new FormData();fd.append("burmeseSrtText",text);const r=await fetch("/api/voice",{method:"POST",body:fd});const j=await r.json();if(!r.ok)throw Error(j.error||"Voice failed");let id=j.jobId;const p=setInterval(async()=>{try{const q=await fetch("/api/status/"+id),s=await q.json();if(s.status==="error"){clearInterval(p);throw Error(s.error)}busy(true,"Generating Burmese Voice",s.message||"Please wait",s.progress||0);if(s.status==="complete"){clearInterval(p);busy(false);$("voiceCard").classList.remove("hidden");$("audio").src=s.files.voice;$("downloadVoice").href=s.files.voice;$("downloadBurmese").href=s.files.burmeseSrt;setStep(4);$("voiceCard").scrollIntoView({behavior:"smooth"});$("voice").disabled=false;toast("Burmese AI Voice ready ✓")}}catch(e){clearInterval(p);busy(false);$("voice").disabled=false;toast(e.message,true)}},1200)}catch(e){busy(false);$("voice").disabled=false;toast(e.message,true)}
-};
-</script>
-</body></html>
+$("voice").onclick=async()=>{const text=$("burmeseText").value.trim();if(!text)return toast("Burmese SRT ထည့်ပါ",true);busy(true,"Generating Burmese Voice","Burmese SRT ကို AI voice ပြောင်းနေပါတယ်",15);$("voice").disabled=true;
+try{const fd=new FormData();fd.append("burmeseSrtText",text);const r=await fetch("/api/voice",{method:"POST",body:fd}),j=await r.json();if(!r.ok)throw Error(j.error||"Voice failed");const id=j.jobId;const p=setInterval(async()=>{try{const q=await fetch("/api/status/"+id),s=await q.json();if(s.status==="error"){clearInterval(p);busy(false);$("voice").disabled=false;toast(s.error,true);return}busy(true,"Generating Burmese Voice",s.message||"Please wait",s.progress||0);if(s.status==="complete"){clearInterval(p);busy(false);$("voiceCard").classList.remove("hidden");$("audio").src=s.files.voice;$("downloadVoice").href=s.files.voice;$("downloadBurmese").href=s.files.burmeseSrt;setStep(4);$("voiceCard").scrollIntoView({behavior:"smooth"});$("voice").disabled=false;toast("Burmese AI Voice ready ✓")}}catch(e){clearInterval(p);busy(false);$("voice").disabled=false;toast(e.message,true)}},1200)}catch(e){busy(false);$("voice").disabled=false;toast(e.message,true)}};
+</script></body></html>
