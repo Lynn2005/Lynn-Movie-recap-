@@ -52,10 +52,38 @@ async function voiceJob(id,srt){
   setJob(id,{status:"complete",stage:"voice_ready",progress:100,message:"AI Voice အဆင်သင့်ပါပြီ",files:{voice:"/api/download/"+id+"/voice.mp3",burmeseSrt:"/api/download/"+id+"/burmese.srt"}});
  }catch(e){setJob(id,{status:"error",stage:"error",progress:0,error:e.message||String(e)})}
 }
+
+app.post("/api/render",(req,res,next)=>{upload.fields([{name:"video",maxCount:1},{name:"voice",maxCount:1}])(req,res,async e=>{
+ if(e)return next(e);
+ const video=req.files&&req.files.video&&req.files.video[0],voice=req.files&&req.files.voice&&req.files.voice[0];
+ if(!video||!voice){for(const x of [video,voice])if(x)try{fs.unlinkSync(x.path)}catch{};return res.status(400).json({error:"Original video နဲ့ AI voice နှစ်ခုလုံးထည့်ပါ။"})}
+ const id=crypto.randomUUID(),dir=path.join(OUT,id);fs.mkdirSync(dir,{recursive:true});
+ try{
+  const srt=clean(req.body.burmeseSrt||"");if(!srt)throw Error("Burmese SRT ထည့်ပါ။");
+  const srtPath=path.join(dir,"burmese.srt"),out=path.join(dir,"final.mp4");
+  fs.writeFileSync(srtPath,srt);
+  const filters=[];
+  if(req.body.mirror==="true")filters.push("hflip");
+  const blur=Math.max(0,Math.min(20,Number(req.body.blur)||0));if(blur>0)filters.push("boxblur="+blur+":1");
+  const subtitleSize=Math.max(12,Math.min(48,Number(req.body.subtitleSize)||24));
+  const escaped=srtPath.replace(/\\/g,"/").replace(/:/g,"\\:").replace(/'/g,"\\'");
+  filters.push("subtitles='"+escaped+"':force_style='FontSize="+subtitleSize+",Outline=2,Shadow=1,Alignment=2,MarginV=35'");
+  const title=String(req.body.overlayText||"").trim().slice(0,100).replace(/\\/g,"").replace(/'/g,"\\'").replace(/:/g,"\\:");
+  if(title)filters.push("drawtext=text='"+title+"':fontcolor=white:fontsize=28:borderw=2:bordercolor=black:x=(w-text_w)/2:y=30");
+  setJob(id,{status:"processing",stage:"render",progress:10,message:"Final video တည်ဆောက်နေပါတယ်..."});
+  const args=["-y","-nostdin","-hide_banner","-loglevel","error","-i",video.path,"-i",voice.path,"-map","0:v:0","-map","1:a:0","-vf",filters.join(","),"-c:v","libx264","-preset","ultrafast","-crf","24","-c:a","aac","-b:a","128k","-shortest","-movflags","+faststart",out];
+  await run(ffmpeg,args);
+  if(!fs.existsSync(out)||fs.statSync(out).size<1024)throw Error("Final video မထွက်လာပါ။");
+  setJob(id,{status:"complete",stage:"render_ready",progress:100,message:"Final video အဆင်သင့်ပါပြီ",files:{finalVideo:"/api/download/"+id+"/final.mp4"}});
+  res.json({jobId:id});
+ }catch(err){setJob(id,{status:"error",stage:"error",progress:0,error:err.message||String(err)});res.status(400).json({error:err.message||"Render failed"})}
+ finally{for(const x of [video,voice])if(x)try{fs.unlinkSync(x.path)}catch{}}
+})});
+
 app.get("/api/health",(q,r)=>r.json({ok:true,version:"5.1.0",freeAI:true,models:["gemini-2.5-flash","gemini-2.0-flash"],tts:"edge-tts"}));
 app.post("/api/process",(req,res,next)=>{upload.single("video")(req,res,e=>{if(e)return next(e);const f=req.file;if(!f)return res.status(400).json({error:"Video ရွေးပါ"});const k=key(req),requested=req.headers["x-gemini-model"];if(!k){try{fs.unlinkSync(f.path)}catch{};return res.status(400).json({error:"Gemini API Key ထည့်ပါ"})}const id=crypto.randomUUID();setJob(id,{status:"queued",stage:"upload",progress:5});process(id,f.path,k,requested);res.json({jobId:id})})});
 app.post("/api/voice",(req,res,next)=>{upload.single("burmeseSrt")(req,res,e=>{if(e)return next(e);let s=req.file?fs.readFileSync(req.file.path,"utf8"):String(req.body.burmeseSrtText||"");if(req.file)try{fs.unlinkSync(req.file.path)}catch{};if(!s.trim())return res.status(400).json({error:"Burmese SRT တင်ပါ"});const id=crypto.randomUUID();setJob(id,{status:"queued",stage:"voice",progress:5});voiceJob(id,s);res.json({jobId:id})})});
 app.get("/api/status/:id",(req,res)=>{const j=jobs.get(req.params.id);j?res.json(j):res.status(404).json({error:"Job not found"})});
-app.get("/api/download/:id/:file",(req,res)=>{const f=path.basename(req.params.file),ok=["original.srt","burmese.srt","voice.mp3"].includes(f);if(!ok)return res.status(400).send("Invalid file");const p=path.join(OUT,req.params.id,f);fs.existsSync(p)?res.download(p,f):res.status(404).send("File not found")});
+app.get("/api/download/:id/:file",(req,res)=>{const f=path.basename(req.params.file),ok=["original.srt","burmese.srt","voice.mp3","final.mp4"].includes(f);if(!ok)return res.status(400).send("Invalid file");const p=path.join(OUT,req.params.id,f);fs.existsSync(p)?res.download(p,f):res.status(404).send("File not found")});
 app.use((e,req,res,next)=>{if(e instanceof multer.MulterError)return res.status(e.code==="LIMIT_FILE_SIZE"?413:400).json({error:e.code==="LIMIT_FILE_SIZE"?"Video 500MB ထက် မကျော်ရပါ။":"Upload error: "+e.message});res.status(500).json({error:e.message||"Server error"})});
 app.listen(PORT,()=>console.log("Lynn Recap 5.1 on "+PORT));
