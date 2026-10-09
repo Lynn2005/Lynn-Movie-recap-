@@ -23,7 +23,16 @@
 <section class="card hidden" id="originalCard"><div class="cardHead"><div><small>STEP 02</small><h2>Original SRT ready</h2></div><span class="success">● COMPLETE</span></div><div class="result"><div class="resultIcon">SRT</div><div><b>Your original subtitles are ready</b><span>Download and translate them to Burmese.</span></div><a id="downloadOriginal" class="download">Download ↓</a></div><div class="copyRow"><button id="copyOriginal" class="ghost wide">Copy SRT</button><textarea id="originalText" readonly placeholder="SRT will appear here..."></textarea></div></section>
 <section class="card" id="burmeseCard"><div class="cardHead"><div><small>STEP 03</small><h2>Burmese SRT</h2></div><span class="badge">Paste or upload</span></div><label class="miniDrop"><input id="srtFile" type="file" accept=".srt,text/plain"><span>＋ Upload Burmese .srt</span></label><textarea id="burmeseText" class="editor" placeholder="1&#10;00:00:00,000 --> 00:00:02,000&#10;မြန်မာဘာသာပြန်စာသား...&#10;&#10;2&#10;00:00:02,000 --> 00:00:04,000&#10;..."></textarea><button class="primary wide" id="voice">Generate Burmese AI Voice <span>→</span></button></section>
 <section class="card hidden" id="voiceCard"><div class="cardHead"><div><small>STEP 04</small><h2>Burmese voice ready</h2></div><span class="success">● COMPLETE</span></div><audio id="audio" controls></audio><div class="downloads"><a id="downloadVoice" class="download big">Download AI Voice ↓</a><a id="downloadBurmese" class="download secondary">Download Burmese SRT ↓</a></div></section>
-<section class="status hidden" id="status"><div class="spinner"></div><div><b id="statusTitle">Processing...</b><span id="statusMsg">Please wait</span></div><strong id="progress">0%</strong></section>
+
+<section class="card" id="renderCard"><div class="cardHead"><div><small>STEP 05</small><h2>Final Video Studio</h2></div><span class="badge">Live settings</span></div>
+<p style="color:#8f98a6;font-size:11px;line-height:1.7">Original video နှင့် AI voice ကိုရွေးပြီး subtitle, blur, mirror, overlay စာသားကို ချိန်ပါ။</p>
+<div class="settings"><div><label>Blur strength (0–20)</label><input id="blur" type="range" min="0" max="20" value="0" style="width:100%"><small id="blurValue">0</small></div><div><label>Subtitle size</label><input id="subtitleSize" type="range" min="12" max="48" value="24" style="width:100%"><small id="subtitleValue">24</small></div></div>
+<label style="display:flex;gap:8px;align-items:center;margin:15px 0;color:#cdd3dc;font-size:12px"><input id="mirror" type="checkbox"> Mirror video (အလျားလိုက်လှန်)</label>
+<label style="display:block;color:#929aa8;font-size:10px;margin:12px 0 6px">Overlay text (optional)</label><input id="overlayText" class="editor" style="min-height:44px;height:44px" placeholder="ဥပမာ - Lynn Recap">
+<button class="primary wide" id="render">Render Final MP4 →</button>
+</section>
+<section class="card hidden" id="finalCard"><div class="cardHead"><div><small>STEP 06</small><h2>Final video ready</h2></div><span class="success">● COMPLETE</span></div><video id="finalPreview" controls playsinline style="width:100%;max-height:420px;border-radius:12px;background:#050608"></video><a id="downloadFinal" class="download big" style="margin:12px 0 0;width:100%">Download Final MP4 ↓</a></section>
+\n<section class="status hidden" id="status"><div class="spinner"></div><div><b id="statusTitle">Processing...</b><span id="statusMsg">Please wait</span></div><strong id="progress">0%</strong></section>
 </main><footer>Lynn Recap AI · Free AI workflow · Built for mobile</footer></div><div id="toast"></div>
 <script>
 const $=id=>document.getElementById(id),keyStore="lynn_gemini_key";let currentJob=null,poller=null;
@@ -45,4 +54,26 @@ $("copyOriginal").onclick=async()=>{try{await navigator.clipboard.writeText($("o
 $("srtFile").onchange=async()=>{const f=$("srtFile").files[0];if(f)$("burmeseText").value=await f.text()};
 $("voice").onclick=async()=>{const text=$("burmeseText").value.trim();if(!text)return toast("Burmese SRT ထည့်ပါ",true);busy(true,"Generating Burmese Voice","Burmese SRT ကို AI voice ပြောင်းနေပါတယ်",15);$("voice").disabled=true;
 try{const fd=new FormData();fd.append("burmeseSrtText",text);const r=await fetch("/api/voice",{method:"POST",body:fd}),j=await r.json();if(!r.ok)throw Error(j.error||"Voice failed");const id=j.jobId;const p=setInterval(async()=>{try{const q=await fetch("/api/status/"+id),s=await q.json();if(s.status==="error"){clearInterval(p);busy(false);$("voice").disabled=false;toast(s.error,true);return}busy(true,"Generating Burmese Voice",s.message||"Please wait",s.progress||0);if(s.status==="complete"){clearInterval(p);busy(false);$("voiceCard").classList.remove("hidden");$("audio").src=s.files.voice;$("downloadVoice").href=s.files.voice;$("downloadBurmese").href=s.files.burmeseSrt;setStep(4);$("voiceCard").scrollIntoView({behavior:"smooth"});$("voice").disabled=false;toast("Burmese AI Voice ready ✓")}}catch(e){clearInterval(p);busy(false);$("voice").disabled=false;toast(e.message,true)}},1200)}catch(e){busy(false);$("voice").disabled=false;toast(e.message,true)}};
-</script></body></html>
+
+$("blur").oninput=()=> $("blurValue").textContent=$("blur").value;
+$("subtitleSize").oninput=()=> $("subtitleValue").textContent=$("subtitleSize").value;
+$("render").onclick=async()=>{
+ const video=$("video").files[0],voiceUrl=$("audio").src,srt=$("burmeseText").value.trim();
+ if(!video)return toast("မူရင်း video ကိုရွေးပါ",true);
+ if(!voiceUrl||!$("voiceCard").classList.contains("hidden")===false)return toast("အရင် AI Voice ထုတ်ပါ",true);
+ if(!srt)return toast("Burmese SRT ထည့်ပါ",true);
+ $("render").disabled=true;busy(true,"Rendering Final MP4","Video effect, subtitle နဲ့ AI voice ပေါင်းနေပါတယ်",10);
+ try{
+  const voiceResp=await fetch(voiceUrl);if(!voiceResp.ok)throw Error("AI voice file မရပါ။");
+  const voiceBlob=await voiceResp.blob(),fd=new FormData();
+  fd.append("video",video);fd.append("voice",voiceBlob,"voice.mp3");fd.append("burmeseSrt",srt);
+  fd.append("blur",$("blur").value);fd.append("subtitleSize",$("subtitleSize").value);fd.append("mirror",$("mirror").checked?"true":"false");fd.append("overlayText",$("overlayText").value);
+  const r=await fetch("/api/render",{method:"POST",body:fd}),j=await r.json();if(!r.ok)throw Error(j.error||"Render failed");
+  const id=j.jobId;
+  const check=setInterval(async()=>{try{const q=await fetch("/api/status/"+id),s=await q.json();busy(true,"Rendering Final MP4",s.message||"Please wait",s.progress||0);
+   if(s.status==="error"){clearInterval(check);busy(false);$("render").disabled=false;toast(s.error||"Render failed",true);return}
+   if(s.status==="complete"){clearInterval(check);busy(false);$("finalCard").classList.remove("hidden");$("finalPreview").src=s.files.finalVideo;$("downloadFinal").href=s.files.finalVideo;setStep(6);$("finalCard").scrollIntoView({behavior:"smooth"});$("render").disabled=false;toast("Final video ready ✓")}
+  }catch(e){clearInterval(check);busy(false);$("render").disabled=false;toast(e.message,true)}},1500);
+ }catch(e){busy(false);$("render").disabled=false;toast(e.message,true)}
+};
+\n</script></body></html>
