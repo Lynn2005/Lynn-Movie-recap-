@@ -1,18 +1,15 @@
 services:
   - type: web
     name: lynn-movie-recap
-    env: node
+    runtime: docker
     plan: free
+    dockerfilePath: ./Dockerfile
     healthCheckPath: /api/health
-    buildCommand: npm install
-    startCommand: npm start
     envVars:
-      - key: NODE_VERSION
-        value: 20
-      - key: GEMINI_MODEL
-        value: gemini-3.8-flash
       - key: MAX_FILE_MB
         value: 500
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
       - key: GEMINI_API_KEY
         sync: false
       - key: TTS_VOICE
