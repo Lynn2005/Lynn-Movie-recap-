@@ -17,18 +17,18 @@ const run=(bin,args)=>new Promise((ok,no)=>execFile(bin,args,{maxBuffer:30*1024*
 const setJob=(id,x)=>jobs.set(id,{...(jobs.get(id)||{}),...x,updatedAt:Date.now()});
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 function key(req){return req.headers["x-gemini-api-key"]||ENV.GEMINI_API_KEY}
-function clean(s){return String(s||"").replace(/^\s*\`\`\`(?:srt|text)?/i,"").replace(/\`\`\`\s*$/,"").trim()}
+function clean(s){return String(s||"").replace(/^\s*```(?:srt|text)?/i,"").replace(/```\s*$/,"").trim()}
 function parseSrt(s){return s.split(/\n\s*\n/).map(b=>{let a=b.split(/\r?\n/),i=a.findIndex(x=>x.includes("-->"));return i<0?null:a.slice(i+1).join(" ").trim()}).filter(Boolean)}
 async function geminiAudio(audio,k,requested){
- const models=[requested,ENV.GEMINI_MODEL,"gemini-3.8-flash","gemini-3.7-flash","gemini-3.5-flash-lite"].filter(Boolean);
+ const models=[requested,ENV.GEMINI_MODEL,"gemini-2.5-flash","gemini-2.0-flash"].filter(Boolean);
  let last;
  for(const name of [...new Set(models)]){
   const m=new GoogleGenerativeAI(k).getGenerativeModel({model:name});
   for(let i=0;i<2;i++){try{
    return (await m.generateContent([{inlineData:{data:fs.readFileSync(audio).toString("base64"),mimeType:"audio/wav"}},{text:"Transcribe this audio accurately in its ORIGINAL spoken language. Return ONLY valid SRT with sequential numbers and HH:MM:SS,mmm timestamps. Do not translate. Do not explain."}])).response.text();
-  }catch(e){last=e;if(!/503|429|UNAVAILABLE|overloaded|high demand|quota|resource exhausted/i.test(String(e.message)))break;await wait(1200*(i+1))}}
+  }catch(e){last=e;if(!/404|not found|model.*not found|503|429|UNAVAILABLE|overloaded|high demand|quota|resource exhausted/i.test(String(e.message)))break;await wait(1000*(i+1))}}
  }
- throw last||new Error("Gemini free model မရပါ။")
+ throw last||new Error("Gemini model မရပါ။")
 }
 async function process(id,input,k,requested){
  const dir=path.join(OUT,id);fs.mkdirSync(dir,{recursive:true});const audio=path.join(dir,"audio.wav");
@@ -52,10 +52,10 @@ async function voiceJob(id,srt){
   setJob(id,{status:"complete",stage:"voice_ready",progress:100,message:"AI Voice အဆင်သင့်ပါပြီ",files:{voice:"/api/download/"+id+"/voice.mp3",burmeseSrt:"/api/download/"+id+"/burmese.srt"}});
  }catch(e){setJob(id,{status:"error",stage:"error",progress:0,error:e.message||String(e)})}
 }
-app.get("/api/health",(q,r)=>r.json({ok:true,version:"5.0.0",freeAI:true,models:["gemini-3.8-flash","gemini-3.7-flash","gemini-3.5-flash-lite"],tts:"edge-tts"}));
+app.get("/api/health",(q,r)=>r.json({ok:true,version:"5.1.0",freeAI:true,models:["gemini-2.5-flash","gemini-2.0-flash"],tts:"edge-tts"}));
 app.post("/api/process",(req,res,next)=>{upload.single("video")(req,res,e=>{if(e)return next(e);const f=req.file;if(!f)return res.status(400).json({error:"Video ရွေးပါ"});const k=key(req),requested=req.headers["x-gemini-model"];if(!k){try{fs.unlinkSync(f.path)}catch{};return res.status(400).json({error:"Gemini API Key ထည့်ပါ"})}const id=crypto.randomUUID();setJob(id,{status:"queued",stage:"upload",progress:5});process(id,f.path,k,requested);res.json({jobId:id})})});
 app.post("/api/voice",(req,res,next)=>{upload.single("burmeseSrt")(req,res,e=>{if(e)return next(e);let s=req.file?fs.readFileSync(req.file.path,"utf8"):String(req.body.burmeseSrtText||"");if(req.file)try{fs.unlinkSync(req.file.path)}catch{};if(!s.trim())return res.status(400).json({error:"Burmese SRT တင်ပါ"});const id=crypto.randomUUID();setJob(id,{status:"queued",stage:"voice",progress:5});voiceJob(id,s);res.json({jobId:id})})});
 app.get("/api/status/:id",(req,res)=>{const j=jobs.get(req.params.id);j?res.json(j):res.status(404).json({error:"Job not found"})});
 app.get("/api/download/:id/:file",(req,res)=>{const f=path.basename(req.params.file),ok=["original.srt","burmese.srt","voice.mp3"].includes(f);if(!ok)return res.status(400).send("Invalid file");const p=path.join(OUT,req.params.id,f);fs.existsSync(p)?res.download(p,f):res.status(404).send("File not found")});
 app.use((e,req,res,next)=>{if(e instanceof multer.MulterError)return res.status(e.code==="LIMIT_FILE_SIZE"?413:400).json({error:e.code==="LIMIT_FILE_SIZE"?"Video 500MB ထက် မကျော်ရပါ။":"Upload error: "+e.message});res.status(500).json({error:e.message||"Server error"})});
-app.listen(PORT,()=>console.log("Lynn Recap 5.0 on "+PORT));
+app.listen(PORT,()=>console.log("Lynn Recap 5.1 on "+PORT));
